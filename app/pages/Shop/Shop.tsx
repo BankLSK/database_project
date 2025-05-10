@@ -24,6 +24,11 @@ function Shop() {
     setCart(updatedCart);
   };
 
+  const handleConfirmPurchase = () => {
+    alert('Thank you for your purchase!');
+    setCart([]);
+  };
+
   const totalPrice = cart.reduce((acc, item) => acc + item.price, 0).toFixed(2);
 
   return (
@@ -59,16 +64,21 @@ function Shop() {
         {cart.length === 0 ? (
           <p>No items in cart yet.</p>
         ) : (
-          <ul>
-            {cart.map((item, index) => (
-              <li key={index}>
-                {item.title} - ${item.price.toFixed(2)}
-                <button onClick={() => handleRemoveFromCart(index)}>Remove</button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul>
+              {cart.map((item, index) => (
+                <li key={index}>
+                  {item.title} - ${item.price.toFixed(2)}
+                  <button onClick={() => handleRemoveFromCart(index)}>Remove</button>
+                </li>
+              ))}
+            </ul>
+            <h3>Total: ${totalPrice}</h3>
+            <button className="confirm-button" onClick={handleConfirmPurchase}>
+              Confirm Purchase
+            </button>
+          </>
         )}
-        <h3>Total: ${totalPrice}</h3>
       </div>
     </motion.div>
   );

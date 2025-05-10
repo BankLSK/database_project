@@ -6,9 +6,13 @@ import LogoutButton from '../../components/LogoutButton';
 import './AdminOverview.css';
 
 interface User {
+  firstName: string;
+  middleName: string;
+  lastName: string;
   username: string;
   email: string;
-  loginTime: string;
+  phone: string;
+  location: string;
 }
 
 interface BookStock {
@@ -22,7 +26,7 @@ export function AdminOverview() {
   const [users, setUsers] = useState<User[]>([]);
   const [stock, setStock] = useState<BookStock[]>([]);
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
-  const [editedUser, setEditedUser] = useState<User>({ username: '', email: '', loginTime: '' });
+  const [editedUser, setEditedUser] = useState<User>({firstName: '',lastName: '',username: '',email: '',middleName:  '', phone: '' , location: ''});
   const [editingBookIndex, setEditingBookIndex] = useState<number | null>(null);
   const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', quantity: 0, price: '' });
   const [userFilter, setUserFilter] = useState('');
@@ -228,18 +232,68 @@ export function AdminOverview() {
         <table className="admin-table">
           <thead>
             <tr>
+              <th>First Name</th>
+              <th>Middle Name</th>
+              <th>Last Name</th>
               <th>Username</th>
               <th>Email</th>
-              <th>Login Time</th>
+              <th>Phone</th>
+              <th>Address</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.filter(user => user.username.toLowerCase().includes(userFilter.toLowerCase())).map((user, index) => (
               <tr key={index}>
-                <td>{editingUserIndex === index ? <input name="username" value={editedUser.username} onChange={handleChangeUser} /> : user.username}</td>
-                <td>{editingUserIndex === index ? <input name="email" value={editedUser.email} onChange={handleChangeUser} /> : user.email}</td>
-                <td>{user.loginTime}</td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="firstName" value={editedUser.firstName} onChange={handleChangeUser} />
+                  ) : (
+                    user.firstName
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="middleName" value={editedUser.middleName} onChange={handleChangeUser} />
+                  ) : (
+                    user.middleName
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="lastName" value={editedUser.lastName} onChange={handleChangeUser} />
+                  ) : (
+                    user.lastName
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="username" value={editedUser.username} onChange={handleChangeUser} />
+                  ) : (
+                    user.username
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="email" value={editedUser.email} onChange={handleChangeUser} />
+                  ) : (
+                    user.email
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="phone" value={editedUser.phone} onChange={handleChangeUser} />
+                  ) : (
+                    user.phone
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="location" value={editedUser.location} onChange={handleChangeUser} />
+                  ) : (
+                    user.location
+                  )}
+                </td>
                 <td className="admin-actions">
                   {editingUserIndex === index ? (
                     <>
