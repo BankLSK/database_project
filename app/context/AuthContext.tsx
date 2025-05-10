@@ -1,46 +1,47 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect} from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode} from 'react';
 
-type AuthContextType = {
-  isLoggedIn: boolean;
-  role: 'admin' | 'user' | null;
-  login: (role: 'admin' | 'user') => void;
+interface AuthContextType {
+  isAuthenticated: boolean;
+  userType: string | null;
+  login: (userType: string) => void;
   logout: () => void;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState<'admin' | 'user' | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userType, setUserType] = useState<string | null>(null);
 
+  // Check for existing auth on component mount
   useEffect(() => {
-    const user = localStorage.getItem('loggedInUser');
-    const savedRole = localStorage.getItem('userRole') as 'admin' | 'user' | null;
-
-    if (user && savedRole) {
-      setIsLoggedIn(true);
-      setRole(savedRole);
+    const storedAuth = localStorage.getItem('isAuthenticated');
+    const storedUserType = localStorage.getItem('userType');
+    
+    if (storedAuth === 'true') {
+      setIsAuthenticated(true);
+      setUserType(storedUserType);
     }
   }, []);
 
-  const login = (userRole: 'admin' | 'user') => {
-    setIsLoggedIn(true);
-    setRole(userRole);
-    localStorage.setItem('loggedInUser', 'true');
-    localStorage.setItem('userRole', userRole);
+  const login = (userType: string) => {
+    setIsAuthenticated(true);
+    setUserType(userType);
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userType', userType);
   };
 
   const logout = () => {
-    setIsLoggedIn(false);
-    setRole(null);
-    localStorage.removeItem('loggedInUser');
-    localStorage.removeItem('userRole');
+    setIsAuthenticated(false);
+    setUserType(null);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userType');
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, role, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, userType, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

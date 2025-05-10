@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import './Signup.css';
 
 export function Signup() {
-  const [signupType, setSignupType] = useState('');
+  const [signupType, setSignupType] = useState('email'); // Default to email signup
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -18,6 +18,7 @@ export function Signup() {
   const [location, setLocation] = useState('');
   const router = useRouter();
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSignupType = (type: string) => {
     setSignupType(type);
@@ -25,6 +26,8 @@ export function Signup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
 
     const newUser = {
       firstname: firstName,
@@ -54,6 +57,8 @@ export function Signup() {
     } catch (err) {
       console.error('Signup failed:', err);
       setMessage('Error signing up user');
+    }finally {
+      setIsLoading(false);
     }
   };
 
