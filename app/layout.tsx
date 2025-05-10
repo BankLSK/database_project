@@ -1,5 +1,5 @@
 // app/layout.tsx
-import './globals.css';
+
 import Navbar from './components/Navbar';
 import { AuthProvider } from './context/AuthContext';
 
