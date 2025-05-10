@@ -23,6 +23,17 @@ export function AdminOverview() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ username: '', email: '', loginTime: '' });
 
+  const [bookStock, setBookStock] = useState<BookStock[]>([
+    { id: 1, title: 'One Piece Vol.1', quantity: 24, price: '$12.99' },
+    { id: 2, title: 'Naruto Vol.5', quantity: 15, price: '$10.99' },
+    { id: 3, title: 'Attack on Titan Vol.2', quantity: 30, price: '$15.99' },
+  ]);
+  const [editingBookIndex, setEditingBookIndex] = useState<number | null>(null);
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', quantity: 0, price: '' });
+
+  const [userFilter, setUserFilter] = useState('');
+  const [bookFilter, setBookFilter] = useState('');
+
   const cards = [
     { title: 'Total Sales', value: '$12,345', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
     { title: 'Total Orders', value: '432', color: 'linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%)' },
@@ -33,12 +44,6 @@ export function AdminOverview() {
     { id: 1, username: 'JohnDoe', book: 'One Piece Vol.1', price: '$12.99' },
     { id: 2, username: 'JaneSmith', book: 'Naruto Vol.5', price: '$10.99' },
     { id: 3, username: 'CoolGuy', book: 'Attack on Titan Vol.2', price: '$15.99' },
-  ];
-
-  const stock: BookStock[] = [
-    { id: 1, title: 'One Piece Vol.1', quantity: 24, price: '$12.99' },
-    { id: 2, title: 'Naruto Vol.5', quantity: 15, price: '$10.99' },
-    { id: 3, title: 'Attack on Titan Vol.2', quantity: 30, price: '$15.99' },
   ];
 
   useEffect(() => {
@@ -71,6 +76,43 @@ export function AdminOverview() {
     setEditedUser(prev => ({ ...prev, [name]: value }));
   };
 
+  // Book Stock handlers
+  const handleBookEdit = (index: number) => {
+    setEditingBookIndex(index);
+    setEditedBook(bookStock[index]);
+  };
+
+  const handleBookChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedBook(prev => ({
+      ...prev,
+      [name]: name === 'quantity' ? parseInt(value) || 0 : value
+    }));
+  };
+
+  const handleBookSave = (index: number) => {
+    const updatedBooks = [...bookStock];
+    updatedBooks[index] = editedBook;
+    setBookStock(updatedBooks);
+    setEditingBookIndex(null);
+  };
+
+  const handleBookDelete = (index: number) => {
+    const updatedBooks = [...bookStock];
+    updatedBooks.splice(index, 1);
+    setBookStock(updatedBooks);
+  };
+
+  // Filters
+  const filteredUsers = users.filter(user =>
+    user.username.toLowerCase().includes(userFilter.toLowerCase()) ||
+    user.email.toLowerCase().includes(userFilter.toLowerCase())
+  );
+
+  const filteredBooks = bookStock.filter(book =>
+    book.title.toLowerCase().includes(bookFilter.toLowerCase())
+  );
+
   return (
     <div className="admin-container">
 
@@ -94,7 +136,7 @@ export function AdminOverview() {
         ))}
       </motion.div>
 
-      {/* Animation Frame (4 Boxes) */}
+      {/* Animation Frame */}
       <motion.div 
         className="frame"
         initial={{ opacity: 0 }}
@@ -145,6 +187,13 @@ export function AdminOverview() {
         transition={{ duration: 1 }}
       >
         <h2>Book Stock</h2>
+        <input
+          type="text"
+          placeholder="Filter books..."
+          value={bookFilter}
+          onChange={(e) => setBookFilter(e.target.value)}
+          className="admin-filter-input"
+        />
         <table className="admin-table">
           <thead>
             <tr>
@@ -152,15 +201,60 @@ export function AdminOverview() {
               <th>Title</th>
               <th>Quantity</th>
               <th>Price</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {stock.map(book => (
+            {filteredBooks.map((book, index) => (
               <tr key={book.id}>
                 <td>{book.id}</td>
-                <td>{book.title}</td>
-                <td>{book.quantity}</td>
-                <td>{book.price}</td>
+                <td>
+                  {editingBookIndex === index ? (
+                    <input
+                      name="title"
+                      value={editedBook.title}
+                      onChange={handleBookChange}
+                    />
+                  ) : (
+                    book.title
+                  )}
+                </td>
+                <td>
+                  {editingBookIndex === index ? (
+                    <input
+                      name="quantity"
+                      type="number"
+                      value={editedBook.quantity}
+                      onChange={handleBookChange}
+                    />
+                  ) : (
+                    book.quantity
+                  )}
+                </td>
+                <td>
+                  {editingBookIndex === index ? (
+                    <input
+                      name="price"
+                      value={editedBook.price}
+                      onChange={handleBookChange}
+                    />
+                  ) : (
+                    book.price
+                  )}
+                </td>
+                <td className="admin-actions">
+                  {editingBookIndex === index ? (
+                    <>
+                      <button onClick={() => handleBookSave(index)}>Save</button>
+                      <button onClick={() => setEditingBookIndex(null)}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => handleBookEdit(index)}>Edit</button>
+                      <button onClick={() => handleBookDelete(index)}>Delete</button>
+                    </>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -175,6 +269,13 @@ export function AdminOverview() {
         transition={{ duration: 1 }}
       >
         <h2>Manage Users</h2>
+        <input
+          type="text"
+          placeholder="Filter users..."
+          value={userFilter}
+          onChange={(e) => setUserFilter(e.target.value)}
+          className="admin-filter-input"
+        />
         <table className="admin-table">
           <thead>
             <tr>
@@ -185,7 +286,7 @@ export function AdminOverview() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user, index) => (
+            {filteredUsers.map((user, index) => (
               <tr key={index}>
                 <td>
                   {editingIndex === index ? (
