@@ -1,77 +1,49 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/BankLSK/database_project/backend/db"
-
 	"github.com/joho/godotenv"
+
+	backend_db "github.com/BankLSK/database_project/backend/db"
+
+	_ "github.com/lib/pq"
 )
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func main() {
-	// Load environment variables from .env file
-	err := godotenv.Load("backend/.env")
+	err := godotenv.Load("backend/.env") // or simply godotenv.Load()
 	if err != nil {
-		log.Println("Warning: Error loading .env file, using environment variables")
+		log.Fatal("Error loading .env file")
 	}
 
-	// Get database connection string from environment variables
-	connStr := os.Getenv("DATABASE_URL")
-	if connStr == "" {
-		log.Fatal("DATABASE_URL environment variable not set")
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL is not set")
 	}
 
-	// Connect to the database
-	database, err := db.ConnectDB(connStr)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("Failed to connect to the database: %v", err)
+		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer database.Close()
+	defer db.Close()
 
-	// Print database version to verify connection
-	var version string
-	err = database.QueryRow("SELECT version()").Scan(&version)
+	err = db.Ping()
 	if err != nil {
-		log.Fatalf("Failed to query database version: %v", err)
+		log.Fatalf("Failed to ping database: %v", err)
 	}
-	log.Printf("Connected to: %s", version)
 
-	// Create the users table
-	err = db.CreateUsersTable()
+	fmt.Println("Connected to Supabase DB via connection pooler!")
+
+	err = backend_db.DisplayAllBooks(db)
 	if err != nil {
-		log.Fatalf("Failed to create users table: %v", err)
-	}
-
-	// Insert some sample users
-	users := []struct {
-		name  string
-		email string
-	}{
-		{"John Doe", "john@example.com"},
-		{"Jane Smith", "jane@example.com"},
-	}
-
-	for _, u := range users {
-		user, err := db.InsertUser(u.name, u.email)
-		if err != nil {
-			log.Printf("Failed to insert user %s: %v", u.name, err)
-			continue
-		}
-		log.Printf("Inserted user: ID=%d, Name=%s, Email=%s, CreatedAt=%v",
-			user.ID, user.Name, user.Email, user.CreatedAt)
-	}
-
-	// Retrieve all users
-	allUsers, err := db.GetAllUsers()
-	if err != nil {
-		log.Fatalf("Failed to retrieve users: %v", err)
-	}
-
-	fmt.Println("\nAll Users:")
-	for _, user := range allUsers {
-		fmt.Printf("ID: %d, Name: %s, Email: %s, Created: %v\n",
-			user.ID, user.Name, user.Email, user.CreatedAt)
+		log.Fatalf("Error displaying books: %v", err)
 	}
 }

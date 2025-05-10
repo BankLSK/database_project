@@ -64,7 +64,7 @@ func CreateUsersTable() error {
 // InsertUser adds a new user to the database
 func InsertUser(name, email string) (User, error) {
 	var user User
-	
+
 	query := `
 	INSERT INTO users (name, email)
 	VALUES ($1, $2)
@@ -81,9 +81,9 @@ func InsertUser(name, email string) (User, error) {
 // GetUserByID retrieves a user by their ID
 func GetUserByID(id int64) (User, error) {
 	var user User
-	
+
 	query := `SELECT id, name, email, created_at FROM users WHERE id = $1`
-	
+
 	err := DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -91,22 +91,22 @@ func GetUserByID(id int64) (User, error) {
 		}
 		return User{}, fmt.Errorf("failed to query user: %v", err)
 	}
-	
+
 	return user, nil
 }
 
 // GetAllUsers retrieves all users from the database
 func GetAllUsers() ([]User, error) {
 	var users []User
-	
+
 	query := `SELECT id, name, email, created_at FROM users ORDER BY id`
-	
+
 	rows, err := DB.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query users: %v", err)
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var user User
 		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt); err != nil {
@@ -114,10 +114,10 @@ func GetAllUsers() ([]User, error) {
 		}
 		users = append(users, user)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating user rows: %v", err)
 	}
-	
+
 	return users, nil
 }
