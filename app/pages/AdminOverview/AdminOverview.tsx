@@ -11,6 +11,13 @@ interface User {
   loginTime: string;
 }
 
+interface BookStock {
+  id: number;
+  title: string;
+  quantity: number;
+  price: string;
+}
+
 export function AdminOverview() {
   const [users, setUsers] = useState<User[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -26,6 +33,12 @@ export function AdminOverview() {
     { id: 1, username: 'JohnDoe', book: 'One Piece Vol.1', price: '$12.99' },
     { id: 2, username: 'JaneSmith', book: 'Naruto Vol.5', price: '$10.99' },
     { id: 3, username: 'CoolGuy', book: 'Attack on Titan Vol.2', price: '$15.99' },
+  ];
+
+  const stock: BookStock[] = [
+    { id: 1, title: 'One Piece Vol.1', quantity: 24, price: '$12.99' },
+    { id: 2, title: 'Naruto Vol.5', quantity: 15, price: '$10.99' },
+    { id: 3, title: 'Attack on Titan Vol.2', quantity: 30, price: '$15.99' },
   ];
 
   useEffect(() => {
@@ -118,6 +131,36 @@ export function AdminOverview() {
                 <td>{order.username}</td>
                 <td>{order.book}</td>
                 <td>{order.price}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </motion.div>
+
+      {/* Book Stock Table */}
+      <motion.div 
+        className="admin-table-container"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+      >
+        <h2>Book Stock</h2>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Quantity</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stock.map(book => (
+              <tr key={book.id}>
+                <td>{book.id}</td>
+                <td>{book.title}</td>
+                <td>{book.quantity}</td>
+                <td>{book.price}</td>
               </tr>
             ))}
           </tbody>
