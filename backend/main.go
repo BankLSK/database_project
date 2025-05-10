@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	// "time"
@@ -14,11 +16,6 @@ import (
 
 	_ "github.com/lib/pq"
 )
-
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
 
 func main() {
 	err := godotenv.Load("backend/.env") // or simply godotenv.Load()
@@ -37,17 +34,72 @@ func main() {
 	}
 	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
-	}
+	// Assign DB to global DB object in db package
+	backend_db.DB = db
+	http.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
+		// CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	fmt.Println("Connected to Supabase DB via connection pooler!")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 
-	err = backend_db.DisplayAllBooks(db)
-	if err != nil {
-		log.Fatalf("Error displaying books: %v", err)
-	}
+		if r.Method != http.MethodPost {
+			http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Step 1: Decode into raw struct
+		var input struct {
+			FirstName  string `json:"firstname"`
+			MiddleName string `json:"middlename"`
+			LastName   string `json:"lastname"`
+			Email      string `json:"email"`
+			Phone      string `json:"phone"`
+			Address    string `json:"address"`
+			Username   string `json:"username"`
+			Password   string `json:"password"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			fmt.Println("JSON decode error:", err)
+			return
+		}
+
+		// Step 2: Convert to DB struct
+		customer := backend_db.Customer{
+			FirstName:  input.FirstName,
+			MiddleName: sql.NullString{String: input.MiddleName, Valid: input.MiddleName != ""},
+			LastName:   input.LastName,
+			Email:      input.Email,
+			Phone:      input.Phone,
+			Address:    input.Address,
+			Username:   input.Username,
+			Password:   input.Password,
+		}
+
+		// Insert into DB
+		_, err := backend_db.InsertCustomer(customer)
+		if err != nil {
+			http.Error(w, "Error inserting customer: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintln(w, "Customer signed up successfully")
+
+	})
+
+	fmt.Println("Server running at http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	// err = backend_db.DisplayAllBooks(db)
+	// if err != nil {
+	// 	log.Fatalf("Error displaying books: %v", err)
+	// }
 
 	// //=============================customer testing==================================
 

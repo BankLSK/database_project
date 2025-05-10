@@ -9,17 +9,17 @@ import (
 )
 
 type Customer struct {
-	CustomerID int64
-	FirstName  string
-	MiddleName sql.NullString
-	LastName   string
-	Email      string
-	Phone      string
-	Address    string
-	Username   string
-	Password   string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	CustomerID int64          `json:"customerid"`
+	FirstName  string         `json:"firstname"`
+	MiddleName sql.NullString `json:"middlename"`
+	LastName   string         `json:"lastname"`
+	Email      string         `json:"email"`
+	Phone      string         `json:"phone"`
+	Address    string         `json:"address"`
+	Username   string         `json:"username"`
+	Password   string         `json:"password"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 // // CREATE

@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import './Signup.css';
-import { address } from 'framer-motion/client';
 
-function Signup() {
+export function Signup() {
   const [signupType, setSignupType] = useState('');
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
@@ -18,33 +17,44 @@ function Signup() {
   const [password, setPassword] = useState('');
   const [location, setLocation] = useState('');
   const router = useRouter();
+  const [message, setMessage] = useState('');
 
   const handleSignupType = (type: string) => {
     setSignupType(type);
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newUser = {
-      signupType,
-      firstName,
-      middleName,
-      lastName,
+      firstname: firstName,
+      middlename: middleName,
+      lastname: lastName,
       username,
       email,
       phone,
-      location,
+      address: location,
       password,
     };
 
-    // Save into localStorage (multiple users)
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(newUser);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
+     try {
+      const res = await fetch('http://localhost:8080/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      });
 
-    alert('Signup successful! Now please login.');
-    router.push('/login');
+      const text = await res.text();
+      setMessage(text);
+
+      if (res.ok) {
+        alert('Signup successful! Now please login.');
+        router.push('/login');
+      }
+    } catch (err) {
+      console.error('Signup failed:', err);
+      setMessage('Error signing up user');
+    }
   };
 
   return (
