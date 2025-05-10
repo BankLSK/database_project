@@ -73,7 +73,7 @@ func main() {
 	// backend_db.GetAllOrders()
     // backend_db.GetOrderByID(1)
 
-    // newOrder := backend_db.order{
+    // newOrder := backend_db.ordersss{
     //     CustomerID:    1, // Use a valid existing customer ID
     //     OrderDate:     time.Now(),
     //     TotalAmount:   149.99,
@@ -81,7 +81,6 @@ func main() {
     //     PaymentStatus: sql.NullString{String: "Paid", Valid: true},
     //     OrderStatus:   sql.NullString{String: "Shipped", Valid: true},
     // }
-
     // backend_db.InsertOrder(newOrder)
 
 

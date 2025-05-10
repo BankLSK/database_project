@@ -9,7 +9,7 @@ import (
 )
 
 // Order represents the order entity.
-type order struct {
+type ordersss struct {
 	OrderID       int64
 	OrderDate     time.Time
 	CustomerID    int64
@@ -24,7 +24,7 @@ type order struct {
 // // CreateOrderTable creates the orders table if it doesn't exist.
 // func CreateOrderTable() error {
 // 	query := `
-// 	CREATE TABLE IF NOT EXISTS "order" (
+// 	CREATE TABLE IF NOT EXISTS ordersss (
 // 		orderid SERIAL PRIMARY KEY,
 // 		orderdate TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 // 		customerid INT NOT NULL REFERENCES customer(customerid) ON DELETE CASCADE,
@@ -44,9 +44,9 @@ type order struct {
 // }
 
 // InsertOrder inserts a new order into the database.
-func InsertOrder(o order) (order, error) {
+func InsertOrder(o ordersss) (ordersss, error) {
 	query := `
-	INSERT INTO orders (customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount)
+	INSERT INTO ordersss (customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount)
 	VALUES ($1, $2, $3, $4, $5, $6)
 	RETURNING orderid, customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount, created_at, updated_at`
 
@@ -59,18 +59,18 @@ func InsertOrder(o order) (order, error) {
 
 	if err != nil {
 		log.Printf("Failed to insert order: %v", err)
-		return order{}, fmt.Errorf("failed to insert order: %w", err)
+		return ordersss{}, fmt.Errorf("failed to insert order: %w", err)
 	}
 	log.Printf("Inserted order ID %d for customer %d", o.OrderID, o.CustomerID)
 	return o, nil
 }
 
 // GetOrderByID
-func GetOrderByID(id int64) (order, error) {
-	var o order
+func GetOrderByID(id int64) (ordersss, error) {
+	var o ordersss
 	query :=`
 	SELECT orderid, customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount, created_at, updated_at
-	FROM "order" WHERE orderid = $1`
+	FROM ordersss WHERE orderid = $1`
 
 	err := DB.QueryRow(query, id).Scan(
 		&o.OrderID, &o.CustomerID, &o.OrderDate,
@@ -80,10 +80,10 @@ func GetOrderByID(id int64) (order, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("No order found with ID %d", id)
-			return order{}, fmt.Errorf("no order found with id %d", id)
+			return ordersss{}, fmt.Errorf("no order found with id %d", id)
 		}
 		log.Printf("Failed to fetch order ID %d: %v", id, err)
-		return order{}, fmt.Errorf("failed to query order: %w", err)
+		return ordersss{}, fmt.Errorf("failed to query order: %w", err)
 	}
 
 	fmt.Println("\n🧾 Order Details")
@@ -104,7 +104,7 @@ func GetOrderByID(id int64) (order, error) {
 }
 
 // GetAllOrder
-func GetAllOrders() ([]order, error) {
+func GetAllOrders() ([]ordersss, error) {
 	query := `
 	SELECT orderid, customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount, created_at, updated_at
 	FROM "order" ORDER BY orderid`
@@ -116,9 +116,9 @@ func GetAllOrders() ([]order, error) {
 	}
 	defer rows.Close()
 
-	var orders []order
+	var orders []ordersss
 	for rows.Next() {
-		var o order
+		var o ordersss
 		if err := rows.Scan(
 			&o.OrderID, &o.CustomerID, &o.OrderDate,
 			&o.PaymentMethod, &o.PaymentStatus, &o.OrderStatus,
