@@ -125,3 +125,22 @@
     margin-top: 2rem;
     font-size: 1.5rem;
   }
+
+  .confirm-button {
+  margin-top: 2rem;
+  padding: 0.8rem 2rem;
+  background: linear-gradient(to right, #00b894, #00cec9);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 2rem;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(0, 206, 201, 0.3);
+  transition: background 0.3s, transform 0.2s;
+}
+
+.confirm-button:hover {
+  background: linear-gradient(to right, #00cec9, #00b894);
+  transform: scale(1.05);
+}

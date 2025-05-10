@@ -19,7 +19,7 @@ export function Collection() {
       transition={{ duration: 0.8 }}
     >
       <h1 className="collection-title">Explore Categories</h1>
-      <div className="card-grid">
+      <div className="card-grid  buy-card">
         {categories.map((cat, index) => (
           <motion.div 
             key={index} 
