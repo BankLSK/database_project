@@ -14,8 +14,8 @@ type Customer struct {
 	MiddleName sql.NullString
 	LastName   string
 	Email      string
-	Phone      sql.NullString
-	Address    sql.NullString
+	Phone      string
+	Address    string
 	Username   string
 	Password   string
 	CreatedAt  time.Time
@@ -103,8 +103,8 @@ func GetCustomerByID(id int64) (Customer, error) {
 	fmt.Printf("Middle Name : %s\n", NullToDash(c.MiddleName))
 	fmt.Printf("Last Name   : %s\n", c.LastName)
 	fmt.Printf("Email       : %s\n", c.Email)
-	fmt.Printf("Phone       : %s\n", NullToDash(c.Phone))
-	fmt.Printf("Address     : %s\n", NullToDash(c.Address))
+	fmt.Printf("Phone       : %s\n", c.Phone)
+	fmt.Printf("Address     : %s\n", c.Address)
 	fmt.Printf("Username    : %s\n", c.Username)
 	fmt.Printf("Created At  : %s\n", c.CreatedAt.Format("2006-01-02 15:04"))
 	fmt.Printf("Updated At  : %s\n", c.UpdatedAt.Format("2006-01-02 15:04"))
@@ -155,18 +155,18 @@ func GetAllCustomers() ([]Customer, error) {
 		if c.MiddleName.Valid {
 			middle = c.MiddleName.String
 		}
-		phone := "-"
-		if c.Phone.Valid {
-			phone = c.Phone.String
-		}
-		address := "-"
-		if c.Address.Valid {
-			address = c.Address.String
-		}
+		// phone := "-"
+		// if c.Phone.Valid {
+		// 	phone = c.Phone.String
+		// }
+		// address := "-"
+		// if c.Address.Valid {
+		// 	address = c.Address.String
+		// }
 
 		fmt.Printf("%-5d %-12s %-15s %-15s %-25s %-15s %-25s %-15s %-20s %-20s\n",
 			c.CustomerID, c.FirstName, middle, c.LastName,
-			c.Email, phone, address, c.Username,
+			c.Email, c.Phone, c.Address, c.Username,
 			c.CreatedAt.Format("2006-01-02 15:04"), c.UpdatedAt.Format("2006-01-02 15:04"))
 	}
 	fmt.Println(strings.Repeat("=", 160))
