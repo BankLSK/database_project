@@ -17,7 +17,7 @@ export function Login() {
 
     if (email === 'admin@gmail.com' && password === 'admin123') {
         login('admin');
-        router.push('/adminoverview');
+        router.push('/admin-overview');
       } else {
         login('user');
         router.push('/profile');

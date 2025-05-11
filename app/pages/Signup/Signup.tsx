@@ -5,12 +5,18 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import './Signup.css';
+import { address } from 'framer-motion/client';
 
 function Signup() {
   const [signupType, setSignupType] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [location, setLocation] = useState('');
   const router = useRouter();
 
   const handleSignupType = (type: string) => {
@@ -22,8 +28,13 @@ function Signup() {
 
     const newUser = {
       signupType,
+      firstName,
+      middleName,
+      lastName,
       username,
       email,
+      phone,
+      location,
       password,
     };
 
@@ -57,6 +68,26 @@ function Signup() {
           <p>Signing up with: <strong>{signupType}</strong></p>
           <input 
             type="text" 
+            placeholder="First Name" 
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+          />
+          <input 
+            type="text" 
+            placeholder="Middle Name" 
+            value={middleName}
+            onChange={(e) => setMiddleName(e.target.value)}
+          />
+          <input 
+            type="text" 
+            placeholder="Last Name" 
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            required
+          />
+          <input 
+            type="text" 
             placeholder="Username" 
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -67,6 +98,20 @@ function Signup() {
             placeholder="Email" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input 
+            type="phone" 
+            placeholder="Phone" 
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+          <input 
+            type="location" 
+            placeholder="Address" 
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
             required
           />
           <input 

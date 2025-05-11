@@ -7,7 +7,7 @@ export default function Collection() {
 
   const handleAdminCollection = async () => {
     try {
-      const res = await fetch('http://localhost:8080/admin-login', {
+      const res = await fetch('http://localhost:3000/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

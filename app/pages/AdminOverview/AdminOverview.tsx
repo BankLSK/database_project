@@ -6,20 +6,39 @@ import LogoutButton from '../../components/LogoutButton';
 import './AdminOverview.css';
 
 interface User {
+  firstName: string;
+  middleName: string;
+  lastName: string;
   username: string;
   email: string;
-  loginTime: string;
+  phone: string;
+  location: string;
+}
+
+interface BookStock {
+  id: number;
+  title: string;
+  quantity: number;
+  price: string;
 }
 
 export function AdminOverview() {
   const [users, setUsers] = useState<User[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editedUser, setEditedUser] = useState<User>({ username: '', email: '', loginTime: '' });
+  const [stock, setStock] = useState<BookStock[]>([]);
+  const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
+  const [editedUser, setEditedUser] = useState<User>({firstName: '',lastName: '',username: '',email: '',middleName:  '', phone: '' , location: ''});
+  const [editingBookIndex, setEditingBookIndex] = useState<number | null>(null);
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', quantity: 0, price: '' });
+  const [userFilter, setUserFilter] = useState('');
+  const [bookFilter, setBookFilter] = useState('');
+  const [addingBook, setAddingBook] = useState(false);
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', quantity: 0, price: '' });
 
   const cards = [
-    { title: 'Total Sales', value: '$12,345', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-    { title: 'Total Orders', value: '432', color: 'linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%)' },
-    { title: 'Total Users', value: users.length.toString(), color: 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)' },
+    { title: 'Total Sales', value: '$12,345', color: '#667eea' },
+    { title: 'Total Orders', value: '432', color: '#ff758c' },
+    { title: 'Total Users', value: users.length.toString(), color: '#43cea2' },
+    { title: 'In Stock', value: stock.reduce((acc, b) => acc + b.quantity, 0).toString(), color: '#f9ca24' },
   ];
 
   const orders = [
@@ -31,76 +50,100 @@ export function AdminOverview() {
   useEffect(() => {
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     setUsers(storedUsers);
+
+    const defaultStock: BookStock[] = [
+      { id: 1, title: 'One Piece Vol.1', quantity: 24, price: '$12.99' },
+      { id: 2, title: 'Naruto Vol.5', quantity: 15, price: '$10.99' },
+      { id: 3, title: 'Attack on Titan Vol.2', quantity: 30, price: '$15.99' },
+    ];
+    const storedStock = JSON.parse(localStorage.getItem('stock') || 'null') || defaultStock;
+    setStock(storedStock);
   }, []);
 
-  const handleDelete = (index: number) => {
-    const updatedUsers = [...users];
-    updatedUsers.splice(index, 1);
-    setUsers(updatedUsers);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+  // User handlers
+  const handleDeleteUser = (index: number) => {
+    const updated = [...users];
+    updated.splice(index, 1);
+    setUsers(updated);
+    localStorage.setItem('users', JSON.stringify(updated));
   };
 
-  const handleEdit = (index: number) => {
-    setEditingIndex(index);
+  const handleEditUser = (index: number) => {
+    setEditingUserIndex(index);
     setEditedUser(users[index]);
   };
 
-  const handleSave = (index: number) => {
-    const updatedUsers = [...users];
-    updatedUsers[index] = editedUser;
-    setUsers(updatedUsers);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-    setEditingIndex(null);
+  const handleSaveUser = (index: number) => {
+    const updated = [...users];
+    updated[index] = editedUser;
+    setUsers(updated);
+    localStorage.setItem('users', JSON.stringify(updated));
+    setEditingUserIndex(null);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeUser = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditedUser(prev => ({ ...prev, [name]: value }));
   };
 
+  // Book handlers
+  const handleDeleteBook = (index: number) => {
+    const updated = [...stock];
+    updated.splice(index, 1);
+    setStock(updated);
+    localStorage.setItem('stock', JSON.stringify(updated));
+  };
+
+  const handleEditBook = (index: number) => {
+    setEditingBookIndex(index);
+    setEditedBook(stock[index]);
+  };
+
+  const handleSaveBook = (index: number) => {
+    const updated = [...stock];
+    updated[index] = editedBook;
+    setStock(updated);
+    localStorage.setItem('stock', JSON.stringify(updated));
+    setEditingBookIndex(null);
+  };
+
+  const handleChangeBook = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedBook(prev => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
+  };
+
+  const handleAddStock = () => {
+    setAddingBook(true);
+    setNewBook({ id: stock.length + 1, title: '', quantity: 0, price: '' });
+  };
+
+  const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewBook(prev => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
+  };
+
+  const handleSaveNewBook = () => {
+    const updated = [...stock, newBook];
+    setStock(updated);
+    localStorage.setItem('stock', JSON.stringify(updated));
+    setAddingBook(false);
+  };
+
   return (
     <div className="admin-container">
-
-      {/* Dashboard Cards */}
-      <motion.div 
-        className="admin-cards"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
+      <motion.div className="frame" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
         {cards.map((card, index) => (
-          <motion.div 
-            className="admin-card"
-            key={index}
-            style={{ background: card.color }}
-            whileHover={{ scale: 1.05 }}
-          >
-            <h2>{card.title}</h2>
-            <p>{card.value}</p>
+          <motion.div key={index} className="box" style={{ backgroundColor: card.color }} whileHover={{ scale: 1.05 }}>
+            <div className="box-content">
+              <h3>{card.title}</h3>
+              <p>{card.value}</p>
+            </div>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Animation Frame (4 Boxes) */}
-      <motion.div 
-        className="frame"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-      >
-        <div className="box box1 type-1"></div>
-        <div className="box box2 type-2"></div>
-        <div className="box box3 type-1"></div>
-        <div className="box box4 type-2"></div>
-      </motion.div>
-
-      {/* Latest Orders */}
-      <motion.div 
-        className="admin-table-container"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-      >
+      {/* Orders */}
+      <motion.div className="admin-table-container" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
         <h2>Latest Orders</h2>
         <table className="admin-table">
           <thead>
@@ -124,59 +167,143 @@ export function AdminOverview() {
         </table>
       </motion.div>
 
-      {/* Manage Users */}
-      <motion.div 
-        className="admin-table-container"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-      >
-        <h2>Manage Users</h2>
+      {/* Book Stock */}
+      <motion.div className="admin-table-container" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
+        <h2>Book Stock</h2>
+        <input className="admin-filter-input" placeholder="Filter by title..." value={bookFilter} onChange={e => setBookFilter(e.target.value)} />
+        
+        <div className="admin-actions add-but">
+          <button onClick={handleAddStock}>Add Stock</button>
+        </div>
+
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Login Time</th>
+              <th>#</th>
+              <th>Title</th>
+              <th>Quantity</th>
+              <th>Price</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user, index) => (
+            {stock.filter(book => book.title.toLowerCase().includes(bookFilter.toLowerCase())).map((book, index) => (
+              <tr key={book.id}>
+                <td>{book.id}</td>
+                <td>{editingBookIndex === index ? <input name="title" value={editedBook.title} onChange={handleChangeBook} /> : book.title}</td>
+                <td>{editingBookIndex === index ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
+                <td>{editingBookIndex === index ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
+                <td className="admin-actions">
+                  {editingBookIndex === index ? (
+                    <>
+                      <button onClick={() => handleSaveBook(index)}>Save</button>
+                      <button onClick={() => setEditingBookIndex(null)}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => handleEditBook(index)}>Edit</button>
+                      <button onClick={() => handleDeleteBook(index)}>Delete</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+
+            {addingBook && (
+              <tr>
+                <td>{newBook.id}</td>
+                <td><input name="title" value={newBook.title} onChange={handleChangeNewBook} /></td>
+                <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
+                <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
+                <td className="admin-actions">
+                  <button onClick={handleSaveNewBook}>Add</button>
+                  <button onClick={() => setAddingBook(false)}>Cancel</button>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </motion.div>
+
+      {/* Users */}
+      <motion.div className="admin-table-container" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
+        <h2>Manage Users</h2>
+        <input className="admin-filter-input" placeholder="Filter by username..." value={userFilter} onChange={e => setUserFilter(e.target.value)} />
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>First Name</th>
+              <th>Middle Name</th>
+              <th>Last Name</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.filter(user => user.username.toLowerCase().includes(userFilter.toLowerCase())).map((user, index) => (
               <tr key={index}>
                 <td>
-                  {editingIndex === index ? (
-                    <input 
-                      name="username"
-                      value={editedUser.username}
-                      onChange={handleChange}
-                    />
+                  {editingUserIndex === index ? (
+                    <input name="firstName" value={editedUser.firstName} onChange={handleChangeUser} />
+                  ) : (
+                    user.firstName
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="middleName" value={editedUser.middleName} onChange={handleChangeUser} />
+                  ) : (
+                    user.middleName
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="lastName" value={editedUser.lastName} onChange={handleChangeUser} />
+                  ) : (
+                    user.lastName
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="username" value={editedUser.username} onChange={handleChangeUser} />
                   ) : (
                     user.username
                   )}
                 </td>
                 <td>
-                  {editingIndex === index ? (
-                    <input 
-                      name="email"
-                      value={editedUser.email}
-                      onChange={handleChange}
-                    />
+                  {editingUserIndex === index ? (
+                    <input name="email" value={editedUser.email} onChange={handleChangeUser} />
                   ) : (
                     user.email
                   )}
                 </td>
-                <td>{user.loginTime}</td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="phone" value={editedUser.phone} onChange={handleChangeUser} />
+                  ) : (
+                    user.phone
+                  )}
+                </td>
+                <td>
+                  {editingUserIndex === index ? (
+                    <input name="location" value={editedUser.location} onChange={handleChangeUser} />
+                  ) : (
+                    user.location
+                  )}
+                </td>
                 <td className="admin-actions">
-                  {editingIndex === index ? (
+                  {editingUserIndex === index ? (
                     <>
-                      <button onClick={() => handleSave(index)}>Save</button>
-                      <button onClick={() => setEditingIndex(null)}>Cancel</button>
+                      <button onClick={() => handleSaveUser(index)}>Save</button>
+                      <button onClick={() => setEditingUserIndex(null)}>Cancel</button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleEdit(index)}>Edit</button>
-                      <button onClick={() => handleDelete(index)}>Delete</button>
+                      <button onClick={() => handleEditUser(index)}>Edit</button>
+                      <button onClick={() => handleDeleteUser(index)}>Delete</button>
                     </>
                   )}
                 </td>
@@ -186,11 +313,9 @@ export function AdminOverview() {
         </table>
       </motion.div>
 
-      {/* Logout */}
       <div className="logout-container">
         <LogoutButton />
       </div>
-
     </div>
   );
 }
