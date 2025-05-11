@@ -13,7 +13,7 @@ pnpm dev
 # or
 bun dev
 #AND
-.\venv\Scripts\activate in another terminal
+.\venv\Scripts\activate then uvicorn app.main:app in the root file in another terminal
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
