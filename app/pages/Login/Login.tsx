@@ -7,7 +7,7 @@ import './Login.css';
 import { useState } from 'react';
 
 export function Login() {
-  const { login } = useAuth();
+  const { login, manualLogin } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,28 +20,48 @@ export function Login() {
     setMessage('');
 
     try {
-      // Special case for the hard-coded admin (can be removed once your admin is in the database)
+      // Special case for the hard-coded admin
       if (email === 'admin@gmail.com' && password === 'admin123') {
-        login('admin');
+        // Direct login for admin (bypassing API)
+        // Create a fake success response for admin
+        localStorage.setItem('token', 'admin-token');
+        localStorage.setItem('userType', 'admin');
+        localStorage.setItem('username', 'admin');
+        localStorage.setItem('customerId', '0'); // optional default ID for admin
+
+        manualLogin(email, 'admin', 'admin', 0);
+        
+        
         router.push('/admin-overview');
         return;
       }
 
-      // For all other users, check with the backend
-      const response = await fetch('http://localhost:8080/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // For regular users, attempt login via API
+      const success = await login(email, password);
+      
+      if (success) {
+        // Get the userType from localStorage (should be set by the login function)
+        const userType = localStorage.getItem('userType') || 'user';
+        const customerId = localStorage.getItem('customerId');  // Check if customerId exists in localStorage
 
-      const data = await response.json();
+  
+        if (!customerId) {
+          // If customerId is missing, fetch it from the API or the response body
+          const res = await fetch('http://localhost:8080/get-user-details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const data = await res.json();
 
-      if (response.ok) {
-        // Login successful
-        const userType = data.user.userType || 'user';
-        login(userType);
+          // Assume the backend response contains the customerId
+          if (data.success) {
+            localStorage.setItem('customerId', data.customerId);  // Store customerId
+          } else {
+            setMessage('Could not fetch customer details.');
+            return;
+          }
+        }
         
         // Redirect based on user type
         if (userType === 'admin') {
@@ -51,7 +71,7 @@ export function Login() {
         }
       } else {
         // Login failed
-        setMessage(data.error || 'Login failed. Please check your credentials.');
+        setMessage('Login failed. Please check your credentials.');
       }
     } catch (error) {
       console.error('Login error:', error);

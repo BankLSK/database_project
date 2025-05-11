@@ -49,8 +49,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	err := backend_db.DB.QueryRow(`
 		SELECT customerid, username, password, 
 		CASE WHEN email = 'admin@gmail.com' THEN 'admin' ELSE 'user' END as userType 
-		FROM customer WHERE email = $1`,
-		creds.Email).Scan(&user.ID, &user.Username, &user.Password, &user.UserType)
+		FROM customer WHERE email = $1 AND password = $2`,
+		creds.Email, creds.Password).Scan(&user.ID, &user.Username, &user.Password, &user.UserType)
 
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusUnauthorized)

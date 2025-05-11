@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'next/navigation';
 import './Shop.css';
 
 const products = [
@@ -12,10 +14,22 @@ const products = [
 ];
 
 function Shop() {
-  const [cart, setCart] = useState<{ id: number; title: string; price: number }[]>([]);
+  const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, customerId } = useAuth();
+  const router = useRouter();
+  
 
   const handleAddToCart = (product: { id: number; title: string; price: number }) => {
-    setCart([...cart, product]);
+    const existingIndex = cart.findIndex(item => item.id === product.id);
+    if (existingIndex !== -1) {
+      const updatedCart = [...cart];
+      updatedCart[existingIndex].quantity += 1;
+      setCart(updatedCart);
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
   };
 
   const handleRemoveFromCart = (index: number) => {
@@ -24,12 +38,56 @@ function Shop() {
     setCart(updatedCart);
   };
 
-  const handleConfirmPurchase = () => {
-    alert('Thank you for your purchase!');
-    setCart([]);
+  const handleConfirmPurchase = async () => {
+    if (!isAuthenticated) {
+      // Redirect to login if not authenticated
+      router.push('/login');
+      return;
+    }
+    
+    if (cart.length === 0) {
+      setError("Your cart is empty");
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    const orderId = Math.floor(Math.random() * 1_000_000_000); // Generates a safe int4
+
+    const payload = {
+        customerid: customerId,
+        orderid: orderId,
+        items: cart.map(item => ({
+        bookid: item.id,
+        quantity: item.quantity,
+        unitprice: item.price
+      }))
+    };
+  
+    try {
+      // Using try-catch with error boundaries to handle network issues
+      const res = await fetch('http://localhost:8080/confirmpurchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Server responded with status: ${res.status}`);
+      }
+      
+      alert('Thank you for your purchase!');
+      setCart([]);
+    } catch (err) {
+      console.error('Purchase confirmation error:', err);
+      setError(err instanceof Error ? err.message : 'Error confirming purchase');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const totalPrice = cart.reduce((acc, item) => acc + item.price, 0).toFixed(2);
+  const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
 
   return (
     <motion.div 
@@ -68,15 +126,21 @@ function Shop() {
             <ul>
               {cart.map((item, index) => (
                 <li key={index}>
-                  {item.title} - ${item.price.toFixed(2)}
+                  {item.title} - ${item.price.toFixed(2)} x {item.quantity}
                   <button onClick={() => handleRemoveFromCart(index)}>Remove</button>
                 </li>
               ))}
             </ul>
             <h3>Total: ${totalPrice}</h3>
-            <button className="confirm-button" onClick={handleConfirmPurchase}>
-              Confirm Purchase
+            <button 
+              className="confirm-button" 
+              onClick={handleConfirmPurchase}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : 'Confirm Purchase'}
             </button>
+            
+            {error && <p className="error-message">{error}</p>}
           </>
         )}
       </div>
