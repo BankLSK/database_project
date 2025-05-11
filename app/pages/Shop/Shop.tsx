@@ -143,7 +143,7 @@ function Shop() {
       if (!response.ok) throw new Error('Checkout has failed');
 
       const data=await response.json();
-      alert('Sale completed! Sale ID:${data.id}');
+      alert('Thank you for your purchase!');
       setCart([]);
     }
     catch (err){
@@ -194,7 +194,7 @@ function Shop() {
               ))}
             </ul>
             <h3>Total: ${totalPrice}</h3>
-            <button className="confirm-button" onClick={handleConfirmPurchase}>
+            <button className="confirm-button" onClick={handleCheckout}>
               Confirm Purchase
             </button>
           </>
@@ -216,7 +216,6 @@ function Shop() {
             }
           </select>
         </div>
-        <button onClick={handleCheckout} disabled={cart.length===0}>Checkout</button>
       </div>
     </motion.div>
   );
