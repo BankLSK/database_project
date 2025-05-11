@@ -1,32 +1,86 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import './Shop.css';
 
-const products = [
-  { id: 1, title: 'One Piece', price: 9.99, image: '/manga/onepiece.jpg' },
-  { id: 2, title: 'Naruto', price: 8.99, image: '/manga/naruto.jpg' },
-  { id: 3, title: 'Attack on Titan', price: 10.99, image: '/manga/aot.jpg' },
-  { id: 4, title: 'Demon Slayer', price: 7.99, image: '/manga/demonslayer.jpg' },
+const initialProducts = [
+  { id: 1, title: 'One Piece', price: 9.99, image: '/manga/onepiece.jpg', stock: 10 },
+  { id: 2, title: 'Naruto', price: 8.99, image: '/manga/naruto.jpg', stock: 8 },
+  { id: 3, title: 'Attack on Titan', price: 10.99, image: '/manga/aot.jpg', stock: 5 },
+  { id: 4, title: 'Demon Slayer', price: 7.99, image: '/manga/demonslayer.jpg', stock: 7 },
 ];
 
+type Product = typeof initialProducts[number];
+
 function Shop() {
-  const [cart, setCart] = useState<{ id: number; title: string; price: number }[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<Product[]>([]);
 
-  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
-    setCart([...cart, product]);
+  // Load products and cart from localStorage
+  useEffect(() => {
+    const storedProducts = localStorage.getItem('products');
+    const storedCart = localStorage.getItem('cart');
+
+    if (storedProducts) {
+      setProducts(JSON.parse(storedProducts));
+    } else {
+      setProducts(initialProducts);
+      localStorage.setItem('products', JSON.stringify(initialProducts));
+    }
+
+    if (storedCart) {
+      setCart(JSON.parse(storedCart));
+    }
+  }, []);
+
+  const updateCart = (newCart: Product[]) => {
+    setCart(newCart);
+    localStorage.setItem('cart', JSON.stringify(newCart));
   };
 
-  const handleRemoveFromCart = (index: number) => {
-    const updatedCart = [...cart];
-    updatedCart.splice(index, 1);
-    setCart(updatedCart);
+  const updateProducts = (newProducts: Product[]) => {
+    setProducts(newProducts);
+    localStorage.setItem('products', JSON.stringify(newProducts));
   };
+
+  const handleAddToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      alert('Out of stock!');
+      return;
+    }
+
+    const updatedCart = [...cart, product];
+    updateCart(updatedCart);
+  };
+
+ const handleRemoveFromCart = (index: number) => {
+  const updatedCart = [...cart];
+  const removedItem = updatedCart.splice(index, 1)[0];
+
+  // Restore stock
+  const updatedProducts = products.map(p =>
+    p.id === removedItem.id ? { ...p, stock: p.stock + 1 } : p
+  );
+
+  updateProducts(updatedProducts);
+  updateCart(updatedCart);
+};
+
 
   const handleConfirmPurchase = () => {
-    alert('Thank you for your purchase!');
-    setCart([]);
+    const updatedProducts = [...products];
+
+    for (const item of cart) {
+      const prodIndex = updatedProducts.findIndex((p) => p.id === item.id);
+      if (prodIndex !== -1 && updatedProducts[prodIndex].stock > 0) {
+        updatedProducts[prodIndex].stock -= 1;
+      }
+    }
+
+    updateProducts(updatedProducts);
+    updateCart([]);
+    alert('Purchase confirmed!');
   };
 
   const totalPrice = cart.reduce((acc, item) => acc + item.price, 0).toFixed(2);
@@ -52,23 +106,28 @@ function Shop() {
           >
             <img src={product.image} alt={product.title} />
             <h2>{product.title}</h2>
-            <p>${product.price}</p>
-            <button onClick={() => handleAddToCart(product)}>Add to Cart</button>
+            <p>${product.price.toFixed(2)}</p>
+            <p>Stock: {product.stock}</p>
+            <button 
+              disabled={product.stock === 0}
+              onClick={() => handleAddToCart(product)}
+            >
+              {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+            </button>
           </motion.div>
         ))}
       </div>
 
-      {/* Cart Section */}
       <div className="cart-details">
         <h2>🛒 Your Cart</h2>
         {cart.length === 0 ? (
-          <p>No items in cart yet.</p>
+          <p>No items in cart.</p>
         ) : (
           <>
             <ul>
               {cart.map((item, index) => (
                 <li key={index}>
-                  {item.title} - ${item.price.toFixed(2)}
+                  {item.title} - ${item.price.toFixed(2)} 
                   <button onClick={() => handleRemoveFromCart(index)}>Remove</button>
                 </li>
               ))}

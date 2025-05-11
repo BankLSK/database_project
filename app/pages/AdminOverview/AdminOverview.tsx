@@ -18,49 +18,81 @@ interface User {
 interface BookStock {
   id: number;
   title: string;
+  category: string;
   quantity: number;
+  price: string;
+}
+
+interface Order {
+  id: number;
+  username: string;
+  book: string;
   price: string;
 }
 
 export function AdminOverview() {
   const [users, setUsers] = useState<User[]>([]);
   const [stock, setStock] = useState<BookStock[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
-  const [editedUser, setEditedUser] = useState<User>({firstName: '',lastName: '',username: '',email: '',middleName:  '', phone: '' , location: ''});
-  const [editingBookIndex, setEditingBookIndex] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', quantity: 0, price: '' });
+  const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
+  const [editingBookId, setEditingBookId] = useState<number | null>(null);
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' });
+
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', quantity: 0, price: '' });
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' });
 
-  const cards = [
-    { title: 'Total Sales', value: '$12,345', color: '#667eea' },
-    { title: 'Total Orders', value: '432', color: '#ff758c' },
-    { title: 'Total Users', value: users.length.toString(), color: '#43cea2' },
-    { title: 'In Stock', value: stock.reduce((acc, b) => acc + b.quantity, 0).toString(), color: '#f9ca24' },
-  ];
-
-  const orders = [
-    { id: 1, username: 'JohnDoe', book: 'One Piece Vol.1', price: '$12.99' },
-    { id: 2, username: 'JaneSmith', book: 'Naruto Vol.5', price: '$10.99' },
-    { id: 3, username: 'CoolGuy', book: 'Attack on Titan Vol.2', price: '$15.99' },
-  ];
+  // Pagination states
+  const [orderPage, setOrderPage] = useState(1);
+  const [bookPage, setBookPage] = useState(1);
+  const [userPage, setUserPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     setUsers(storedUsers);
 
     const defaultStock: BookStock[] = [
-      { id: 1, title: 'One Piece Vol.1', quantity: 24, price: '$12.99' },
-      { id: 2, title: 'Naruto Vol.5', quantity: 15, price: '$10.99' },
-      { id: 3, title: 'Attack on Titan Vol.2', quantity: 30, price: '$15.99' },
+      { id: 1, title: 'One Piece Vol.1', category: 'Manga', quantity: 24, price: '$12.99' },
+      { id: 2, title: 'Naruto Vol.5', category: 'Manga', quantity: 15, price: '$10.99' },
+      { id: 3, title: 'Attack on Titan Vol.2', category: 'Manga', quantity: 30, price: '$15.99' },
     ];
     const storedStock = JSON.parse(localStorage.getItem('stock') || 'null') || defaultStock;
     setStock(storedStock);
+
+    const defaultOrders: Order[] = [
+      { id: 1, username: 'JohnDoe', book: 'One Piece Vol.1', price: '$12.99' },
+      { id: 2, username: 'JaneSmith', book: 'Naruto Vol.5', price: '$10.99' },
+      { id: 3, username: 'CoolGuy', book: 'Attack on Titan Vol.2', price: '$15.99' },
+    ];
+    const storedOrders = JSON.parse(localStorage.getItem('orders') || 'null') || defaultOrders;
+    setOrders(storedOrders);
   }, []);
 
-  // User handlers
+  const totalSales = orders.reduce((sum, order) => {
+    const priceNumber = parseFloat(order.price.replace('$', ''));
+    return sum + priceNumber;
+  }, 0).toFixed(2);
+
+  const cards = [
+    { title: 'Total Sales', value: `$${totalSales}`, color: '#667eea' },
+    { title: 'Total Orders', value: orders.length.toString(), color: '#ff758c' },
+    { title: 'Total Users', value: users.length.toString(), color: '#43cea2' },
+    { title: 'In Stock', value: stock.reduce((acc, b) => acc + b.quantity, 0).toString(), color: '#f9ca24' },
+  ];
+
+  // Filtered Data for pagination
+  const filteredUsers = users.filter(user => user.username.toLowerCase().includes(userFilter.toLowerCase()));
+  const filteredBooks = stock.filter(book => book.title.toLowerCase().includes(bookFilter.toLowerCase()));
+
+  const paginatedOrders = orders.slice((orderPage - 1) * itemsPerPage, orderPage * itemsPerPage);
+  const paginatedBooks = filteredBooks.slice((bookPage - 1) * itemsPerPage, bookPage * itemsPerPage);
+  const paginatedUsers = filteredUsers.slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage);
+
+  // --- Handlers: User ---
   const handleDeleteUser = (index: number) => {
     const updated = [...users];
     updated.splice(index, 1);
@@ -86,25 +118,26 @@ export function AdminOverview() {
     setEditedUser(prev => ({ ...prev, [name]: value }));
   };
 
-  // Book handlers
-  const handleDeleteBook = (index: number) => {
-    const updated = [...stock];
-    updated.splice(index, 1);
+  // --- Handlers: Book ---
+  const handleDeleteBook = (id: number) => {
+    const updated = stock.filter(book => book.id !== id);
     setStock(updated);
     localStorage.setItem('stock', JSON.stringify(updated));
   };
 
-  const handleEditBook = (index: number) => {
-    setEditingBookIndex(index);
-    setEditedBook(stock[index]);
+  const handleEditBook = (id: number) => {
+    const book = stock.find(b => b.id === id);
+    if (book) {
+      setEditingBookId(id);
+      setEditedBook(book);
+    }
   };
 
-  const handleSaveBook = (index: number) => {
-    const updated = [...stock];
-    updated[index] = editedBook;
+  const handleSaveBook = () => {
+    const updated = stock.map(b => (b.id === editedBook.id ? editedBook : b));
     setStock(updated);
     localStorage.setItem('stock', JSON.stringify(updated));
-    setEditingBookIndex(null);
+    setEditingBookId(null);
   };
 
   const handleChangeBook = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +147,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: stock.length + 1, title: '', quantity: 0, price: '' });
+    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' });
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +162,7 @@ export function AdminOverview() {
     setAddingBook(false);
   };
 
+  // --- Render ---
   return (
     <div className="admin-container">
       <motion.div className="frame" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
@@ -142,7 +176,7 @@ export function AdminOverview() {
         ))}
       </motion.div>
 
-      {/* Orders */}
+      {/* Orders Table */}
       <motion.div className="admin-table-container" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
         <h2>Latest Orders</h2>
         <table className="admin-table">
@@ -155,7 +189,7 @@ export function AdminOverview() {
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
+            {paginatedOrders.map(order => (
               <tr key={order.id}>
                 <td>{order.id}</td>
                 <td>{order.username}</td>
@@ -165,54 +199,55 @@ export function AdminOverview() {
             ))}
           </tbody>
         </table>
+        <Pagination total={orders.length} current={orderPage} onPageChange={setOrderPage} />
       </motion.div>
 
-      {/* Book Stock */}
+      {/* Book Stock Table */}
       <motion.div className="admin-table-container" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
         <h2>Book Stock</h2>
         <input className="admin-filter-input" placeholder="Filter by title..." value={bookFilter} onChange={e => setBookFilter(e.target.value)} />
-        
         <div className="admin-actions add-but">
           <button onClick={handleAddStock}>Add Stock</button>
         </div>
-
         <table className="admin-table">
           <thead>
             <tr>
               <th>#</th>
               <th>Title</th>
+              <th>Category</th>
               <th>Quantity</th>
               <th>Price</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {stock.filter(book => book.title.toLowerCase().includes(bookFilter.toLowerCase())).map((book, index) => (
+            {paginatedBooks.map((book) => (
               <tr key={book.id}>
                 <td>{book.id}</td>
-                <td>{editingBookIndex === index ? <input name="title" value={editedBook.title} onChange={handleChangeBook} /> : book.title}</td>
-                <td>{editingBookIndex === index ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
-                <td>{editingBookIndex === index ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
+                <td>{editingBookId === book.id ? <input name="title" value={editedBook.title} onChange={handleChangeBook} /> : book.title}</td>
+                <td>{editingBookId === book.id ? <input name="category" value={editedBook.category} onChange={handleChangeBook} /> : book.category}</td>
+                <td>{editingBookId === book.id ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
+                <td>{editingBookId === book.id ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
                 <td className="admin-actions">
-                  {editingBookIndex === index ? (
+                  {editingBookId === book.id ? (
                     <>
-                      <button onClick={() => handleSaveBook(index)}>Save</button>
-                      <button onClick={() => setEditingBookIndex(null)}>Cancel</button>
+                      <button onClick={handleSaveBook}>Save</button>
+                      <button onClick={() => setEditingBookId(null)}>Cancel</button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleEditBook(index)}>Edit</button>
-                      <button onClick={() => handleDeleteBook(index)}>Delete</button>
+                      <button onClick={() => handleEditBook(book.id)}>Edit</button>
+                      <button onClick={() => handleDeleteBook(book.id)}>Delete</button>
                     </>
                   )}
                 </td>
               </tr>
             ))}
-
             {addingBook && (
               <tr>
                 <td>{newBook.id}</td>
                 <td><input name="title" value={newBook.title} onChange={handleChangeNewBook} /></td>
+                <td><input name="category" value={newBook.category} onChange={handleChangeNewBook} /></td>
                 <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
                 <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
                 <td className="admin-actions">
@@ -223,9 +258,10 @@ export function AdminOverview() {
             )}
           </tbody>
         </table>
+        <Pagination total={filteredBooks.length} current={bookPage} onPageChange={setBookPage} />
       </motion.div>
 
-      {/* Users */}
+      {/* Users Table */}
       <motion.div className="admin-table-container" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
         <h2>Manage Users</h2>
         <input className="admin-filter-input" placeholder="Filter by username..." value={userFilter} onChange={e => setUserFilter(e.target.value)} />
@@ -243,57 +279,15 @@ export function AdminOverview() {
             </tr>
           </thead>
           <tbody>
-            {users.filter(user => user.username.toLowerCase().includes(userFilter.toLowerCase())).map((user, index) => (
+            {paginatedUsers.map((user, index) => (
               <tr key={index}>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="firstName" value={editedUser.firstName} onChange={handleChangeUser} />
-                  ) : (
-                    user.firstName
-                  )}
-                </td>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="middleName" value={editedUser.middleName} onChange={handleChangeUser} />
-                  ) : (
-                    user.middleName
-                  )}
-                </td>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="lastName" value={editedUser.lastName} onChange={handleChangeUser} />
-                  ) : (
-                    user.lastName
-                  )}
-                </td>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="username" value={editedUser.username} onChange={handleChangeUser} />
-                  ) : (
-                    user.username
-                  )}
-                </td>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="email" value={editedUser.email} onChange={handleChangeUser} />
-                  ) : (
-                    user.email
-                  )}
-                </td>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="phone" value={editedUser.phone} onChange={handleChangeUser} />
-                  ) : (
-                    user.phone
-                  )}
-                </td>
-                <td>
-                  {editingUserIndex === index ? (
-                    <input name="location" value={editedUser.location} onChange={handleChangeUser} />
-                  ) : (
-                    user.location
-                  )}
-                </td>
+                <td>{editingUserIndex === index ? <input name="firstName" value={editedUser.firstName} onChange={handleChangeUser} /> : user.firstName}</td>
+                <td>{editingUserIndex === index ? <input name="middleName" value={editedUser.middleName} onChange={handleChangeUser} /> : user.middleName}</td>
+                <td>{editingUserIndex === index ? <input name="lastName" value={editedUser.lastName} onChange={handleChangeUser} /> : user.lastName}</td>
+                <td>{editingUserIndex === index ? <input name="username" value={editedUser.username} onChange={handleChangeUser} /> : user.username}</td>
+                <td>{editingUserIndex === index ? <input name="email" value={editedUser.email} onChange={handleChangeUser} /> : user.email}</td>
+                <td>{editingUserIndex === index ? <input name="phone" value={editedUser.phone} onChange={handleChangeUser} /> : user.phone}</td>
+                <td>{editingUserIndex === index ? <input name="location" value={editedUser.location} onChange={handleChangeUser} /> : user.location}</td>
                 <td className="admin-actions">
                   {editingUserIndex === index ? (
                     <>
@@ -311,13 +305,30 @@ export function AdminOverview() {
             ))}
           </tbody>
         </table>
+        <Pagination total={filteredUsers.length} current={userPage} onPageChange={setUserPage} />
       </motion.div>
-
-      <div className="logout-container">
-        <LogoutButton />
-      </div>
     </div>
   );
 }
+
+// Pagination Component
+const Pagination = ({ total, current, onPageChange }: { total: number, current: number, onPageChange: (page: number) => void }) => {
+  const pages = Math.ceil(total / 10);
+  if (pages <= 1) return null;
+
+  return (
+    <div className="pagination">
+      {Array.from({ length: pages }, (_, i) => (
+        <button
+          key={i}
+          className={current === i + 1 ? 'active' : ''}
+          onClick={() => onPageChange(i + 1)}
+        >
+          {i + 1}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 export default AdminOverview;

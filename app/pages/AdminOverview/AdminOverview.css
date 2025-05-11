@@ -196,3 +196,21 @@ body {
   background: #f0f0f0;
   box-shadow: 6px 6px 0 #000;
 }
+.pagination {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.pagination button {
+  padding: 5px 10px;
+  border: none;
+  background: #ddd;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.pagination button.active {
+  background: #667eea;
+  color: white;
+}

@@ -12,7 +12,7 @@ export function Home() {
       <div className="hero">
         <h1>Welcome to Manga World</h1>
         <p>Discover your next favorite story...</p>
-        <a href="/collection" className="shop-now-btn">Start Reading</a>
+        <a href="/shop">Start Reading</a>
       </div>
     </motion.div>
   );
