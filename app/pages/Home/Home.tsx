@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import './Home.css';
 
 export function Home() {
@@ -12,7 +13,7 @@ export function Home() {
       <div className="hero">
         <h1>Welcome to Manga World</h1>
         <p>Discover your next favorite story...</p>
-        <a href="/shop">Start Reading</a>
+        <Link href="/shop">Start Reading</Link>
       </div>
     </motion.div>
   );
