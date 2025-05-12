@@ -6,6 +6,12 @@ const bestSellers = [
   { title: 'Naruto', image: '/bestsellers/naruto.jpg', price: '$8.99' },
   { title: 'Attack on Titan', image: '/bestsellers/aot.jpg', price: '$10.99' },
   { title: 'Demon Slayer', image: '/bestsellers/demonslayer.jpg', price: '$7.99' },
+  { title: 'Solo Leveling',image:'/bestsellers/sololeveling.jpg',price:'$9.99'},
+  { title: 'Shangri-La Frontier',image:'/bestsellers/shangrila.jpg',price:'$8.49'},
+  { title: 'Dr.Stone', image:'/bestsellers/drstone.jpg',price:'$9.49'},
+  { title: 'Re:Zero', image:'/bestsellers/rezero.jpg',price:'$8.99'},
+  { title: 'Fire Force', image: '/bestsellers/fireforce.jpg', price:'$7.99'},
+  { title: 'My Hero Academia', image:'/bestsellers/mma.jpg',price:'$8.99'},
 ];
 
 export function BestSeller() {
