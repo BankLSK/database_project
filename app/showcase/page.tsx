@@ -126,7 +126,7 @@ function ShowcaseContent(){
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CartProvider, useCart } from '../context/CartContext'; // adapte le chemin si besoin
+import { CartProvider, useCart } from '../context/CartContext';
 import './showcase.css';
 
 interface BookStock {
@@ -226,7 +226,6 @@ function ShowcaseContent() {
   );
 }
 
-// ✅ ShowcasePage devient juste le wrapper
 export default function ShowcasePage() {
   return (
     <CartProvider>
