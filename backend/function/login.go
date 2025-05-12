@@ -3,6 +3,7 @@ package function
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	backend_db "github.com/BankLSK/database_project/backend/db"
@@ -54,10 +55,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Println("Email not found")
 		json.NewEncoder(w).Encode(map[string]string{"error": "Email not found"})
 		return
 	} else if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println("Database error")
 		json.NewEncoder(w).Encode(map[string]string{"error": "Database error: " + err.Error()})
 		return
 	}
@@ -65,12 +68,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Check password
 	if user.Password != creds.Password {
 		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Println("Incorrect password")
 		json.NewEncoder(w).Encode(map[string]string{"error": "Incorrect password"})
 		return
 	}
 
 	// Return user info on successful login
 	w.WriteHeader(http.StatusOK)
+	fmt.Println("Login successful")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Login successful",
 		"user": map[string]interface{}{
