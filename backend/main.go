@@ -31,6 +31,8 @@ func main() {
 	http.HandleFunc("/login", function.LoginHandler)
 	http.HandleFunc("/confirmpurchase", function.ConfirmPurchaseHandler)
 	http.HandleFunc("/addbook", function.AddBookHandler)
+	http.HandleFunc("/api/admin/update-order-status", function.UpdateOrderStatusHandler) //comfirm button on admin page
+	http.HandleFunc("/api/admin/unprocessed-orders", function.GetUnprocessedOrdersHandler) // set latest order table
 	http.HandleFunc("/getbooks", func(w http.ResponseWriter, r *http.Request) {
 		function.HandleGetBooksByCategory(database, w, r)
 	})

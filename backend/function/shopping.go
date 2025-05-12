@@ -152,3 +152,78 @@ func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	fmt.Println("Order confirmed successfully!")
 }
+
+func UpdateOrderStatusHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("UpdateOrderStatusHandler triggered")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		OrderID int64 `json:"orderid"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	query := `
+		UPDATE ordersmain
+		SET paymentstatus = 'Paid',
+		    orderstatus = 'Shipped',
+		    updated_at = NOW()
+		WHERE orderid = $1
+	`
+	_, err := backend_db.DB.Exec(query, req.OrderID)
+	if err != nil {
+		fmt.Println("Failed to update order:", err)
+		http.Error(w, "Failed to update order", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"message": "Order status updated successfully"}`)
+}
+
+func GetUnprocessedOrdersHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("GetUnprocessedOrdersHandler triggered")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Content-Type", "application/json")
+
+    if r.Method != http.MethodGet {
+        http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    orders, err := backend_db.GetUnprocessedOrders()
+    if err != nil {
+        http.Error(w, "Failed to fetch unprocessed orders", http.StatusInternalServerError)
+        return
+    }
+
+    json.NewEncoder(w).Encode(orders)
+}
+
+// func GetAllOrdersHandler(w http.ResponseWriter, r *http.Request) {
+// 	fmt.Println("GetAllOrdersHandler triggered")
+// 	w.Header().Set("Access-Control-Allow-Origin", "*")
+// 	w.Header().Set("Content-Type", "application/json")
+
+// 	if r.Method != http.MethodGet {
+// 		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+// 		return
+// 	}
+
+// 	orders, err := backend_db.GetAllOrders()
+// 	if err != nil {
+// 		http.Error(w, "Failed to fetch orders", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	json.NewEncoder(w).Encode(orders)
+// }

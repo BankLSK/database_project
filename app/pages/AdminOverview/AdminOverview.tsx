@@ -4,15 +4,19 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import LogoutButton from '../../components/LogoutButton';
 import './AdminOverview.css';
+// lastest order
+import { createClient } from '@supabase/supabase-js';
+//
+//=========================== struct ===========================
 
 interface User {
-  firstName: string;
-  middleName: string;
-  lastName: string;
+  firstname: string;
+  middlename: string;
+  lastname: string;
   username: string;
   email: string;
   phone: string;
-  location: string;
+  address: string;
 }
 
 interface BookStock {
@@ -32,15 +36,21 @@ interface Order {
   orderDate: string;
   username: string;
   customerId: number;
-  book: string;
+  // book: string;
   price: string;
   totalAmount: string;
   paymentMethod: string;
   orderStatus: 'pending' | 'success';
 }
 
-const API_BASE_URL = 'http://localhost:8080';
 
+
+// lastest order connect supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+const API_BASE_URL = 'http://localhost:8080';
 
 export function AdminOverview() {
   const [users, setUsers] = useState<User[]>([]);
@@ -48,23 +58,9 @@ export function AdminOverview() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  /*useEffect(() => {
-  async function fetchOrders() {
-    try {
-      const response = await fetch('/api/orders');
-      const data = await response.json();
-      setOrders(data.orders ?? []); // fallback vide si null
-    } catch (error) {
-      console.error(error);
-      setOrders([]); // en cas d'erreur API
-    }
-  }
-
-  fetchOrders();
-  }, []);*/
 
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
-  const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
+  const [editedUser, setEditedUser] = useState<User>({ firstname: '', lastname: '', username: '', email: '', middlename: '', phone: '', address: '' });
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
   const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
 
@@ -73,57 +69,88 @@ export function AdminOverview() {
   const [addingBook, setAddingBook] = useState(false);
   const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
 
+//=================================================================================
   // Pagination states
   const [orderPage, setOrderPage] = useState(1);
   const [bookPage, setBookPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
   const itemsPerPage = 10;
 
-  /*useEffect(() => {
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    setUsers(storedUsers);
+  // manage user table
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data: usersData, error } = await supabase
+        .from('customer') // Replace 'users' with your actual table name
+        .select(`
+          firstname,
+          middlename,
+          lastname,
+          username,
+          email,
+          phone,
+          address
+        `);
 
-    const storedStock = JSON.parse(localStorage.getItem('stock') || 'null');
-    setStock(storedStock);
+      if (error) {
+        console.error('Error fetching users:', error.message);
+        return;
+      }
 
-    const defaultOrders: Order[] = [
-      { 
-        id: 1, 
-        orderDate: '2025-05-10', 
-        username: 'JohnDoe', 
-        customerId: 101, 
-        book: 'One Piece Vol.1', 
-        price: '$12.99',
-        totalAmount: '$12.99',
-        paymentMethod: 'Credit Card',
-        orderStatus: 'pending'
-      },
-      { 
-        id: 2, 
-        orderDate: '2025-05-09', 
-        username: 'JaneSmith', 
-        customerId: 102, 
-        book: 'Naruto Vol.5', 
-        price: '$10.99',
-        totalAmount: '$10.99',
-        paymentMethod: 'PayPal',
-        orderStatus: 'pending'
-      },
-      { 
-        id: 3, 
-        orderDate: '2025-05-08', 
-        username: 'CoolGuy', 
-        customerId: 103, 
-        book: 'Attack on Titan Vol.2', 
-        price: '$15.99',
-        totalAmount: '$15.99',
-        paymentMethod: 'Debit Card',
-        orderStatus: 'success'
-      },
-    ];
-    const storedOrders = JSON.parse(localStorage.getItem('orders') || 'null') || defaultOrders;
-    setOrders(storedOrders);
-  },[]);*/
+      setUsers(usersData || []);
+    };
+
+    fetchUsers();
+  }, []);
+
+ 
+  // lastest order table
+  useEffect(() => {
+    const fetchData = async () => {
+      // Fetch orders
+      const { data: ordersData, error: orderError } = await supabase
+        .from('ordersmain')
+        .select(`
+          orderid,
+          orderdate,
+          customerid,
+          totalamount,
+          paymentmethod,
+          orderstatus,
+          paymentstatus
+        `)
+        .order('orderid', { ascending: false });
+
+      if (orderError) {
+        console.error('Error fetching orders:', orderError.message);
+        return;
+      }
+
+      const incompleteOrders = (ordersData || []).filter((o: any) => {
+        return o.paymentstatus !== 'Paid' || o.orderstatus !== 'Shipped';
+      });
+
+      // Optionally join customer or book data later
+      const parsedOrders: Order[] = incompleteOrders.map((o: any) => ({
+        id: o.orderid,
+        orderDate: o.orderdate,
+        username: 'Unknown', // Could join customer.username later
+        customerId: o.customerid,
+        // book: '-', // You can fetch book titles later from order_details
+        price: `$${o.totalamount.toFixed(2)}`,
+        totalAmount: `$${o.totalamount.toFixed(2)}`,
+        paymentMethod: o.paymentmethod,
+        orderStatus: o.orderstatus === 'success' ? 'success' : 'pending',
+      }));
+
+      setOrders(parsedOrders);
+    };
+
+    fetchData();
+  }, []);
+
+//
+  const totalSales = orders.reduce((sum, order) => {
+ 
   useEffect(() => {
   // Safe parse pour array
   const safeParseArray = <T,>(raw: string | null, fallback: T[]): T[] => {
@@ -205,24 +232,58 @@ export function AdminOverview() {
   const paginatedUsers = filteredUsers.slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage);
 
   // --- Handlers: User ---
-  const handleDeleteUser = (index: number) => {
-    const updated = [...users];
-    updated.splice(index, 1);
-    setUsers(updated);
-    localStorage.setItem('users', JSON.stringify(updated));
+  // const handleDeleteUser = (index: number) => {
+  //   const updated = [...users];
+  //   updated.splice(index, 1);
+  //   setUsers(updated);
+  //   localStorage.setItem('users', JSON.stringify(updated));
+  // };
+
+  // const handleSaveUser = (index: number) => {
+  //   const updated = [...users];
+  //   updated[index] = editedUser;
+  //   setUsers(updated);
+  //   localStorage.setItem('users', JSON.stringify(updated));
+  //   setEditingUserIndex(null);
+  // };
+  const handleSaveUser = async (index: number) => {
+    const userToUpdate = users[index];
+    const { error } = await supabase
+      .from('customer')
+      .update(editedUser)
+      .eq('username', userToUpdate.username); // Assuming 'username' is unique
+
+    if (error) {
+      console.error('Error updating user:', error.message);
+      return;
+    }
+
+    const updatedUsers = [...users];
+    updatedUsers[index] = editedUser;
+    setUsers(updatedUsers);
+    setEditingUserIndex(null);
+  };
+
+  const handleDeleteUser = async (index: number) => {
+    const userToDelete = users[index];
+    const { error } = await supabase
+      .from('customer')
+      .delete()
+      .eq('username', userToDelete.username); // Assuming 'username' is unique
+
+    if (error) {
+      console.error('Error deleting user:', error.message);
+      return;
+    }
+
+    const updatedUsers = [...users];
+    updatedUsers.splice(index, 1);
+    setUsers(updatedUsers);
   };
 
   const handleEditUser = (index: number) => {
     setEditingUserIndex(index);
     setEditedUser(users[index]);
-  };
-
-  const handleSaveUser = (index: number) => {
-    const updated = [...users];
-    updated[index] = editedUser;
-    setUsers(updated);
-    localStorage.setItem('users', JSON.stringify(updated));
-    setEditingUserIndex(null);
   };
 
   const handleChangeUser = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -420,14 +481,56 @@ export function AdminOverview() {
     }
   };
 
-  // --- Handler: Confirm Payment ---
-  const handleConfirmPayment = (orderId: number) => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, orderStatus: 'success' as const } : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem('orders', JSON.stringify(updatedOrders));
-  };
+ 
+const handleConfirmPayment = async (orderId: number) => {
+  const { error } = await supabase
+    .from('ordersmain')
+    .update({
+      paymentstatus: 'Paid',
+      orderstatus: 'Shipped'
+    })
+    .eq('orderid', orderId);
+
+  if (error) {
+    console.error('Failed to update order status:', error.message);
+    return;
+  }
+
+  // Refresh orders from Supabase
+  const { data: refreshedOrders, error: fetchError } = await supabase
+    .from('ordersmain')
+    .select(`
+      orderid,
+      orderdate,
+      customerid,
+      totalamount,
+      paymentmethod,
+      orderstatus,
+      paymentstatus
+    `)
+    .order('orderid', { ascending: false });
+
+  if (fetchError) {
+    console.error('Failed to refresh orders:', fetchError.message);
+    return;
+  }
+
+  const parsedOrders: Order[] = refreshedOrders.map((o: any) => ({
+    id: o.orderid,
+    orderDate: o.orderdate,
+    username: 'Unknown',
+    customerId: o.customerid,
+    book: '-',
+    price: `$${o.totalamount.toFixed(2)}`,
+    totalAmount: `$${o.totalamount.toFixed(2)}`,
+    paymentMethod: o.paymentmethod,
+    orderStatus: o.orderstatus === 'Shipped' ? 'success' : 'pending',
+  }));
+
+  setOrders(parsedOrders);
+};
+//
+  
 
   // --- Render ---
   return (
@@ -451,9 +554,8 @@ export function AdminOverview() {
             <tr>
               <th>Order ID</th>
               <th>Order Date</th>
-              <th>Username</th>
               <th>Customer ID</th>
-              <th>Book</th>
+              {/* <th>Book</th> */}
               <th>Price</th>
               <th>Total Amount</th>
               <th>Payment Method</th>
@@ -466,9 +568,8 @@ export function AdminOverview() {
               <tr key={order.id}>
                 <td>{order.id}</td>
                 <td>{order.orderDate}</td>
-                <td>{order.username}</td>
                 <td>{order.customerId}</td>
-                <td>{order.book}</td>
+                {/* <td>{order.book}</td> */}
                 <td>{order.price}</td>
                 <td>{order.totalAmount}</td>
                 <td>{order.paymentMethod}</td>
@@ -572,10 +673,10 @@ export function AdminOverview() {
         <table className="admin-table">
           <thead>
             <tr>
+              <th>Username</th>
               <th>First Name</th>
               <th>Middle Name</th>
               <th>Last Name</th>
-              <th>Username</th>
               <th>Email</th>
               <th>Phone</th>
               <th>Address</th>
@@ -585,13 +686,13 @@ export function AdminOverview() {
           <tbody>
             {paginatedUsers.map((user, index) => (
               <tr key={index}>
-                <td>{editingUserIndex === index ? <input name="firstName" value={editedUser.firstName} onChange={handleChangeUser} /> : user.firstName}</td>
-                <td>{editingUserIndex === index ? <input name="middleName" value={editedUser.middleName} onChange={handleChangeUser} /> : user.middleName}</td>
-                <td>{editingUserIndex === index ? <input name="lastName" value={editedUser.lastName} onChange={handleChangeUser} /> : user.lastName}</td>
                 <td>{editingUserIndex === index ? <input name="username" value={editedUser.username} onChange={handleChangeUser} /> : user.username}</td>
+                <td>{editingUserIndex === index ? <input name="firstname" value={editedUser.firstname} onChange={handleChangeUser} /> : user.firstname}</td>
+                <td>{editingUserIndex === index ? <input name="middlename" value={editedUser.middlename} onChange={handleChangeUser} /> : user.middlename}</td>
+                <td>{editingUserIndex === index ? <input name="lastname" value={editedUser.lastname} onChange={handleChangeUser} /> : user.lastname}</td>
                 <td>{editingUserIndex === index ? <input name="email" value={editedUser.email} onChange={handleChangeUser} /> : user.email}</td>
                 <td>{editingUserIndex === index ? <input name="phone" value={editedUser.phone} onChange={handleChangeUser} /> : user.phone}</td>
-                <td>{editingUserIndex === index ? <input name="location" value={editedUser.location} onChange={handleChangeUser} /> : user.location}</td>
+                <td>{editingUserIndex === index ? <input name="address" value={editedUser.address} onChange={handleChangeUser} /> : user.address}</td>
                 <td className="admin-actions">
                   {editingUserIndex === index ? (
                     <>
