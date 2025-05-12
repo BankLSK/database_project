@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -28,15 +28,14 @@ const paymentMethods = [
 ];
 
 function Shop() {
-  //const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
-  const { cart, addToCart, removeFromCart } = useCart();
+  const { isAuthenticated, customerId } = useAuth();
+  const { cart, addToCart, removeFromCart } = useCart(); // ✅ Use cart context
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, customerId } = useAuth();
   const router = useRouter();
-
+  
   useEffect(() => {
     const savedCart = localStorage.getItem('savedCart');
     if (savedCart) {
@@ -112,11 +111,11 @@ function Shop() {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
-        throw new Error(`Server responded with status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
 
       alert('Thank you for your purchase!');
+      localStorage.removeItem('cart'); // Optional: context can also expose a `clearCart()` method
+      location.reload(); // quick refresh to clear context (or use a proper clear function)
       //setCart([]);
       setSelectedPayment('');
     } catch (err) {
@@ -128,7 +127,6 @@ function Shop() {
   };
 
   const navigateToLogin = () => {
-    localStorage.setItem('savedCart', JSON.stringify(cart));
     router.push('/login');
   };
 
@@ -153,7 +151,7 @@ function Shop() {
             <img src={product.image} alt={product.title} />
             <h2>{product.title}</h2>
             <p>${product.price.toFixed(2)}</p>
-            <button onClick={() => handleAddToCart(product)}>Add to Cart</button>
+            <button onClick={() => addToCart({ ...product, quantity: 1 })}>Add to Cart</button>
           </motion.div>
         ))}
       </div>

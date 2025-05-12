@@ -1,20 +1,20 @@
 package function
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
-	"database/sql"
 
 	backend_db "github.com/BankLSK/database_project/backend/db"
 )
 
 type PurchaseRequest struct {
-	CustomerID int64                         `json:"customerid"`
-	OrderID    int64                         `json:"orderid"`
-	Items      []backend_db.OrderDetailsItem `json:"items"`
-	PaymentMethod string                     `json:"paymentmethod"` // add the payment method
+	CustomerID    int64                         `json:"customerid"`
+	OrderID       int64                         `json:"orderid"`
+	Items         []backend_db.OrderDetailsItem `json:"items"`
+	PaymentMethod string                        `json:"paymentmethod"` // add the payment method
 }
 
 func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
@@ -62,11 +62,10 @@ func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create the order first and get the OrderID
 	orderData := backend_db.Ordersss{
-		CustomerID:  req.CustomerID,
-		OrderDate:   time.Now(), // Add order date as current time
-		TotalAmount: 0,          // Initial value, will update after adding items
-		// PaymentMethod: sql.NullString{String: req.PaymentMethod, Valid: true}, //adding payment method right here!
-		PaymentMethod: sql.NullString{String: paymentMethod, Valid: true}, //adding payment method right here!
+		CustomerID:    req.CustomerID,
+		OrderDate:     time.Now(), // Add order date as current time
+		TotalAmount:   0,          // Initial value, will update after adding items
+		PaymentMethod: sql.NullString{String: paymentMethod, Valid: true},
 	}
 
 	order, err := backend_db.InsertOrder(orderData) // Insert the main order first
@@ -91,6 +90,33 @@ func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Fetch current quantity of the book
+		var currentQuantity int
+		err = backend_db.DB.QueryRow("SELECT quantity FROM book WHERE bookid = $1", item.BookID).Scan(&currentQuantity)
+		if err != nil {
+			fmt.Println("Failed to fetch book quantity:", err)
+			http.Error(w, "Failed to fetch book quantity", http.StatusInternalServerError)
+			return
+		}
+
+		// Check if enough stock is available
+		if int64(currentQuantity) < item.Quantity {
+			http.Error(w, "Not enough stock available for book ID "+fmt.Sprintf("%d", item.BookID), http.StatusBadRequest)
+			return
+		}
+
+		// Update the book quantity in the database
+		_, err = backend_db.DB.Exec(`
+			UPDATE book
+			SET quantity = quantity - $1
+			WHERE bookid = $2
+		`, item.Quantity, item.BookID)
+		if err != nil {
+			fmt.Println("Failed to update book quantity:", err)
+			http.Error(w, "Failed to update book quantity", http.StatusInternalServerError)
+			return
+		}
+
 		// Create the order details entry
 		orderDetail := backend_db.OrdersDetails{
 			CustomerID: req.CustomerID,
@@ -100,8 +126,6 @@ func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
 			UnitPrice:  item.UnitPrice,
 			SubTotal:   float64(item.Quantity) * item.UnitPrice,
 		}
-		fmt.Printf("Inserting order detail: %+v\n", orderDetail)
-		fmt.Printf("Item UnitPrice: %v, Quantity: %v\n", item.UnitPrice, item.Quantity)
 
 		// Insert the order details into the database
 		_, err = backend_db.InsertOrderDetails(orderDetail)
@@ -113,9 +137,6 @@ func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Add the item subtotal to the total amount
 		totalAmount += orderDetail.SubTotal
-		fmt.Printf("Inserting Order Detail: CustomerID=%d, OrderID=%d, BookID=%d, Quantity=%d, UnitPrice=%f, SubTotal=%f\n",
-			orderDetail.CustomerID, orderDetail.OrderID, orderDetail.BookID, orderDetail.Quantity,
-			orderDetail.UnitPrice, orderDetail.SubTotal)
 	}
 
 	// After inserting all items, update the total amount in the main order
