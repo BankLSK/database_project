@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"database/sql"
 
 	backend_db "github.com/BankLSK/database_project/backend/db"
 )
@@ -13,6 +14,7 @@ type PurchaseRequest struct {
 	CustomerID int64                         `json:"customerid"`
 	OrderID    int64                         `json:"orderid"`
 	Items      []backend_db.OrderDetailsItem `json:"items"`
+	PaymentMethod string                     `json:"paymentmethod"` // add the payment method
 }
 
 func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,11 +54,19 @@ func ConfirmPurchaseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// set default (Credit Card, PayPal)
+	paymentMethod := req.PaymentMethod
+	if paymentMethod == "" {
+		paymentMethod = "Credit Card" // default value
+	}
+
 	// Create the order first and get the OrderID
 	orderData := backend_db.Ordersss{
 		CustomerID:  req.CustomerID,
 		OrderDate:   time.Now(), // Add order date as current time
 		TotalAmount: 0,          // Initial value, will update after adding items
+		// PaymentMethod: sql.NullString{String: req.PaymentMethod, Valid: true}, //adding payment method right here!
+		PaymentMethod: sql.NullString{String: paymentMethod, Valid: true}, //adding payment method right here!
 	}
 
 	order, err := backend_db.InsertOrder(orderData) // Insert the main order first

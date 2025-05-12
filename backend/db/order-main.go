@@ -23,6 +23,12 @@ type Ordersss struct {
 
 // InsertOrder inserts a new order into the database.
 func InsertOrder(o Ordersss) (Ordersss, error) {
+	if !o.PaymentStatus.Valid {
+		o.PaymentStatus = sql.NullString{String: "Pending", Valid: true}
+	}
+	if !o.OrderStatus.Valid {
+		o.OrderStatus = sql.NullString{String: "Processing", Valid: true}
+	}
 	query := `
 	INSERT INTO ordersmain (customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount)
 	VALUES ($1, $2, $3, $4, $5, $6)
