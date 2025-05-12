@@ -49,6 +49,45 @@ func InsertOrder(o Ordersss) (Ordersss, error) {
 	return o, nil
 }
 
+// set the latest order table on admin overview
+func GetUnprocessedOrders() ([]Ordersss, error) {
+	query := `
+	SELECT orderid, customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount, created_at, updated_at
+	FROM ordersmain
+	WHERE paymentstatus != 'Paid' AND orderstatus != 'Shipped'
+	ORDER BY orderid DESC`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		log.Printf("Failed to query unprocessed orders: %v", err)
+		return nil, fmt.Errorf("failed to query unprocessed orders: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []Ordersss
+	for rows.Next() {
+		var o Ordersss
+		if err := rows.Scan(
+			&o.OrderID, &o.CustomerID, &o.OrderDate,
+			&o.PaymentMethod, &o.PaymentStatus, &o.OrderStatus,
+			&o.TotalAmount, &o.CreatedAt, &o.UpdatedAt,
+		); err != nil {
+			log.Printf("Failed to scan unprocessed order row: %v", err)
+			return nil, fmt.Errorf("failed to scan order row: %w", err)
+		}
+		orders = append(orders, o)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("Error iterating unprocessed orders: %v", err)
+		return nil, fmt.Errorf("error iterating orders: %w", err)
+	}
+
+	log.Printf("Retrieved %d unprocessed orders", len(orders))
+	return orders, nil
+}
+
+
 // // CreateOrderTable creates the orders table if it doesn't exist.
 // func CreateOrderTable() error {
 // 	query := `
@@ -136,7 +175,7 @@ func UpdateOrderTotalAmount(order Ordersss) (Ordersss, error) {
 func GetAllOrders() ([]Ordersss, error) {
 	query := `
 	SELECT orderid, customerid, orderdate, paymentmethod, paymentstatus, orderstatus, totalamount, created_at, updated_at
-	FROM "order" ORDER BY orderid`
+	FROM ordersmain ORDER BY orderid`
 
 	rows, err := DB.Query(query)
 	if err != nil {

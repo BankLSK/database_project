@@ -31,6 +31,12 @@ func main() {
 	http.HandleFunc("/login", function.LoginHandler) // (optional for future)
 	http.HandleFunc("/confirmpurchase", function.ConfirmPurchaseHandler)
 	http.HandleFunc("/addbook", function.AddBookHandler)
+	http.HandleFunc("/api/admin/update-order-status", function.UpdateOrderStatusHandler) //comfirm button on admin page
+	http.HandleFunc("/api/admin/unprocessed-orders", function.GetUnprocessedOrdersHandler) // set latest order table
+	// http.HandleFunc("/api/admin/all-orders", function.GetAllOrdersHandler) // set latest order table v2
+
+
+
 
 	fmt.Println("Server running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
