@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import {useCart} from '../../context/CartContext'
 import './Shop.css';
 
 const products = [
@@ -11,6 +12,12 @@ const products = [
   { id: 2, title: 'Naruto', price: 8.99, image: '/manga/naruto.jpg' },
   { id: 3, title: 'Attack on Titan', price: 10.99, image: '/manga/aot.jpg' },
   { id: 4, title: 'Demon Slayer', price: 7.99, image: '/manga/demonslayer.jpg' },
+  { id: 5, title: 'Solo Leveling',price:9.99,image:'/manga/sololeveling.jpg'},
+  { id: 6, title: 'Shangri-La Frontier',price:8.49,image:'/manga/shangrila.jpg'},
+  { id: 7, title: 'Dr.Stone', price:9.49,image:'/manga/drstone.jpg'},
+  { id: 8, title: 'Re:Zero',price:8.99 ,image:'/manga/rezero.jpg'},
+  { id: 9, title: 'Fire Force',price:7.99, image: '/manga/fireforce.jpg'},
+  { id:10, title: 'My Hero Academia',price:8.99 ,image:'/manga/mma.jpg'},
 ];
 
 const paymentMethods = [
@@ -21,23 +28,23 @@ const paymentMethods = [
 ];
 
 function Shop() {
-  const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
+  const { isAuthenticated, customerId } = useAuth();
+  const { cart, addToCart, removeFromCart } = useCart(); // ✅ Use cart context
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, customerId } = useAuth();
   const router = useRouter();
-
+  
   useEffect(() => {
     const savedCart = localStorage.getItem('savedCart');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      //setCart(JSON.parse(savedCart));
       localStorage.removeItem('savedCart');
     }
   }, []);
 
-  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
+  /*const handleAddToCart = (product: { id: number; title: string; price: number }) => {
     const existingIndex = cart.findIndex(item => item.id === product.id);
     if (existingIndex !== -1) {
       const updatedCart = [...cart];
@@ -46,12 +53,24 @@ function Shop() {
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
-  };
+  };*/
+  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      quantity: 1, // le contexte s'occupera d'augmenter si besoin
+    });
+  };  
 
-  const handleRemoveFromCart = (index: number) => {
+  /*const handleRemoveFromCart = (index: number) => {
     const updatedCart = [...cart];
     updatedCart.splice(index, 1);
     setCart(updatedCart);
+  };*/
+  const handleRemoveFromCart = (id: number) => {
+    console.log("Bouton",id)
+    removeFromCart(id);
   };
 
   const handleConfirmPurchase = async () => {
@@ -92,12 +111,12 @@ function Shop() {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
-        throw new Error(`Server responded with status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
 
       alert('Thank you for your purchase!');
-      setCart([]);
+      localStorage.removeItem('cart'); // Optional: context can also expose a `clearCart()` method
+      location.reload(); // quick refresh to clear context (or use a proper clear function)
+      //setCart([]);
       setSelectedPayment('');
     } catch (err) {
       console.error('Purchase confirmation error:', err);
@@ -108,10 +127,10 @@ function Shop() {
   };
 
   const navigateToLogin = () => {
-    localStorage.setItem('savedCart', JSON.stringify(cart));
     router.push('/login');
   };
 
+  //const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
   const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
 
   return (
@@ -132,7 +151,7 @@ function Shop() {
             <img src={product.image} alt={product.title} />
             <h2>{product.title}</h2>
             <p>${product.price.toFixed(2)}</p>
-            <button onClick={() => handleAddToCart(product)}>Add to Cart</button>
+            <button onClick={() => addToCart({ ...product, quantity: 1 })}>Add to Cart</button>
           </motion.div>
         ))}
       </div>
@@ -147,7 +166,7 @@ function Shop() {
               {cart.map((item, index) => (
                 <li key={index}>
                   {item.title} - ${item.price.toFixed(2)} x {item.quantity}
-                  <button className="remove-button" onClick={() => handleRemoveFromCart(index)}>Remove</button>
+                  <button className="remove-button" onClick={() => removeFromCart(item.id)}>Remove</button>
                 </li>
               ))}
             </ul>

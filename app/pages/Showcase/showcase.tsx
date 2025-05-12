@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useCart } from './../context/CartContext';
+import { useCart } from '../../context/CartContext';
 import './showcase.css';
 
 interface BookStock {
