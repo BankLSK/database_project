@@ -25,6 +25,7 @@ interface BookStock {
   publisher: string;
   publishYear: number;
   language: string;
+  isbn: string;
 }
 
 interface Order {
@@ -48,30 +49,15 @@ export function AdminOverview() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  /*useEffect(() => {
-  async function fetchOrders() {
-    try {
-      const response = await fetch('/api/orders');
-      const data = await response.json();
-      setOrders(data.orders ?? []); // fallback vide si null
-    } catch (error) {
-      console.error(error);
-      setOrders([]); // en cas d'erreur API
-    }
-  }
-
-  fetchOrders();
-  }, []);*/
-
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
 
   // Pagination states
   const [orderPage, setOrderPage] = useState(1);
@@ -79,51 +65,6 @@ export function AdminOverview() {
   const [userPage, setUserPage] = useState(1);
   const itemsPerPage = 10;
 
-  /*useEffect(() => {
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    setUsers(storedUsers);
-
-    const storedStock = JSON.parse(localStorage.getItem('stock') || 'null');
-    setStock(storedStock);
-
-    const defaultOrders: Order[] = [
-      { 
-        id: 1, 
-        orderDate: '2025-05-10', 
-        username: 'JohnDoe', 
-        customerId: 101, 
-        book: 'One Piece Vol.1', 
-        price: '$12.99',
-        totalAmount: '$12.99',
-        paymentMethod: 'Credit Card',
-        orderStatus: 'pending'
-      },
-      { 
-        id: 2, 
-        orderDate: '2025-05-09', 
-        username: 'JaneSmith', 
-        customerId: 102, 
-        book: 'Naruto Vol.5', 
-        price: '$10.99',
-        totalAmount: '$10.99',
-        paymentMethod: 'PayPal',
-        orderStatus: 'pending'
-      },
-      { 
-        id: 3, 
-        orderDate: '2025-05-08', 
-        username: 'CoolGuy', 
-        customerId: 103, 
-        book: 'Attack on Titan Vol.2', 
-        price: '$15.99',
-        totalAmount: '$15.99',
-        paymentMethod: 'Debit Card',
-        orderStatus: 'success'
-      },
-    ];
-    const storedOrders = JSON.parse(localStorage.getItem('orders') || 'null') || defaultOrders;
-    setOrders(storedOrders);
-  },[]);*/
   useEffect(() => {
   // Safe parse pour array
   const safeParseArray = <T,>(raw: string | null, fallback: T[]): T[] => {
@@ -303,11 +244,12 @@ export function AdminOverview() {
       title: editedBook.title || "",
       category: editedBook.category || "",
       quantity: Number(editedBook.quantity) || 0,
-      price: parseFloat((editedBook.price || "").replace('$', '')) || 0,
+      price: parseFloat(String(editedBook.price || "").replace('$', '')) || 0,
       author: editedBook.author || "",
       publisher: editedBook.publisher || "",
       language: editedBook.language || "",
       publish_year: Number(editedBook.publishYear) || 2024,
+      isbn: editedBook.isbn || "",
     };
     
     console.log("Formatted data for API:", bookData);
@@ -357,7 +299,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0 });
+    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: '' });
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
