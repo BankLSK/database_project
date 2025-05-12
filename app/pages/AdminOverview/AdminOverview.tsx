@@ -21,6 +21,11 @@ interface BookStock {
   category: string;
   quantity: number;
   price: string;
+  isbn: string;
+  author_id: string;
+  publisher_id: string;
+  publish_year: string;
+  language_id: string;
 }
 
 interface Order {
@@ -43,12 +48,12 @@ export function AdminOverview() {
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' });
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , isbn: '', author_id: '', publisher_id: '', publish_year:'', language_id:''});
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' });
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , isbn: '', author_id: '', publisher_id: '', publish_year:'', language_id:''});
 
   // Pagination states
   const [orderPage, setOrderPage] = useState(1);
@@ -60,12 +65,7 @@ export function AdminOverview() {
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     setUsers(storedUsers);
 
-    const defaultStock: BookStock[] = [
-      { id: 1, title: 'One Piece Vol.1', category: 'Manga', quantity: 24, price: '$12.99' },
-      { id: 2, title: 'Naruto Vol.5', category: 'Manga', quantity: 15, price: '$10.99' },
-      { id: 3, title: 'Attack on Titan Vol.2', category: 'Manga', quantity: 30, price: '$15.99' },
-    ];
-    const storedStock = JSON.parse(localStorage.getItem('stock') || 'null') || defaultStock;
+    const storedStock = JSON.parse(localStorage.getItem('stock') || 'null');
     setStock(storedStock);
 
     const defaultOrders: Order[] = [
@@ -182,7 +182,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' });
+    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , isbn: '', author_id: '', publisher_id: '', publish_year:'', language_id:'' });
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,15 +199,11 @@ export function AdminOverview() {
 
   // --- Handler: Confirm Payment ---
   const handleConfirmPayment = (orderId: number) => {
-    const updatedOrders = orders.map(order => {
-      if (order.id === orderId) {
-        return { ...order, orderStatus: 'success' as const };
-      }
-      return order;
-    });
+    const updatedOrders = orders.map(order => 
+      order.id === orderId ? { ...order, orderStatus: 'success' as const } : order
+    );
     setOrders(updatedOrders);
     localStorage.setItem('orders', JSON.stringify(updatedOrders));
-    console.log('Payment confirmed for order:', orderId);
   };
 
   // --- Render ---
@@ -254,12 +250,12 @@ export function AdminOverview() {
                 <td>{order.totalAmount}</td>
                 <td>{order.paymentMethod}</td>
                 <td>
-                  <span className={`status-badge ${order.orderStatus || 'pending'}`}>
-                    {order.orderStatus ? (order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)) : 'Pending'}
+                  <span className={`status-badge ${order.orderStatus}`}>
+                    {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
                   </span>
                 </td>
                 <td className="admin-actions">
-                  {(!order.orderStatus || order.orderStatus === 'pending') && (
+                  {order.orderStatus === 'pending' && (
                     <button 
                       className="confirm-button"
                       onClick={() => handleConfirmPayment(order.id)}
@@ -290,6 +286,11 @@ export function AdminOverview() {
               <th>Category</th>
               <th>Quantity</th>
               <th>Price</th>
+              <th>ISBN</th>
+              <th>Author ID</th>
+              <th>Publisher ID</th>
+              <th>Publish Year</th>
+              <th>Language ID</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -301,6 +302,11 @@ export function AdminOverview() {
                 <td>{editingBookId === book.id ? <input name="category" value={editedBook.category} onChange={handleChangeBook} /> : book.category}</td>
                 <td>{editingBookId === book.id ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
                 <td>{editingBookId === book.id ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
+                <td>{editingBookId === book.id ? <input name="ISBN" value={editedBook.isbn} onChange={handleChangeBook} /> : book.isbn}</td>
+                <td>{editingBookId === book.id ? <input name="Author ID" value={editedBook.author_id} onChange={handleChangeBook} /> : book.author_id}</td>
+                <td>{editingBookId === book.id ? <input name="Publisher ID" value={editedBook.publisher_id} onChange={handleChangeBook} /> : book.publisher_id}</td>
+                <td>{editingBookId === book.id ? <input name="Publish Year" value={editedBook.publish_year} onChange={handleChangeBook} /> : book.publish_year}</td>
+                <td>{editingBookId === book.id ? <input name="language ID" value={editedBook.language_id} onChange={handleChangeBook} /> : book.language_id}</td>
                 <td className="admin-actions">
                   {editingBookId === book.id ? (
                     <>
@@ -323,6 +329,11 @@ export function AdminOverview() {
                 <td><input name="category" value={newBook.category} onChange={handleChangeNewBook} /></td>
                 <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
                 <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
+                <td><input name="ISBN" value={newBook.isbn} onChange={handleChangeNewBook} /></td>
+                <td><input name="Author ID" value={newBook.author_id} onChange={handleChangeNewBook} /></td>
+                <td><input name="Publisher ID" value={newBook.publisher_id} onChange={handleChangeNewBook} /></td>
+                <td><input name="Publish Year" value={newBook.publish_year} onChange={handleChangeNewBook} /></td>
+                <td><input name="language ID" value={newBook.language_id} onChange={handleChangeNewBook} /></td>
                 <td className="admin-actions">
                   <button onClick={handleSaveNewBook}>Add</button>
                   <button onClick={() => setAddingBook(false)}>Cancel</button>
