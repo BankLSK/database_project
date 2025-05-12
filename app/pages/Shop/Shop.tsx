@@ -70,6 +70,7 @@ function Shop() {
     setCart(updatedCart);
   };*/
   const handleRemoveFromCart = (id: number) => {
+    console.log("Bouton",id)
     removeFromCart(id);
   };
 
