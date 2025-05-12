@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../context/AuthContext'; // Import useAuth from your AuthContext
 import './Shop.css';
 
 const products = [
@@ -21,23 +21,31 @@ const paymentMethods = [
 ];
 
 function Shop() {
-  const [cart, setCart] = useState<{ id: number; title: string; price: number }[]>([]);
+  const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, customerId } = useAuth();
   const router = useRouter();
-  const { isLoggedIn, role } = useAuth(); // Get authentication state from context
-  
-  // Retrieve saved cart if it exists
+
   useEffect(() => {
     const savedCart = localStorage.getItem('savedCart');
     if (savedCart) {
       setCart(JSON.parse(savedCart));
-      localStorage.removeItem('savedCart'); // Clear saved cart after retrieving
+      localStorage.removeItem('savedCart');
     }
   }, []);
 
   const handleAddToCart = (product: { id: number; title: string; price: number }) => {
-    setCart([...cart, product]);
+    const existingIndex = cart.findIndex(item => item.id === product.id);
+    if (existingIndex !== -1) {
+      const updatedCart = [...cart];
+      updatedCart[existingIndex].quantity += 1;
+      setCart(updatedCart);
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
   };
 
   const handleRemoveFromCart = (index: number) => {
@@ -46,9 +54,14 @@ function Shop() {
     setCart(updatedCart);
   };
 
-  const handleConfirmPurchase = () => {
-    if (!isLoggedIn) {
+  const handleConfirmPurchase = async () => {
+    if (!isAuthenticated) {
       setShowLoginModal(true);
+      return;
+    }
+
+    if (cart.length === 0) {
+      setError("Your cart is empty");
       return;
     }
 
@@ -57,41 +70,52 @@ function Shop() {
       return;
     }
 
-    // Get current user
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    // Create order
-    const newOrder = {
-      id: Date.now(),
-      orderDate: new Date().toISOString().split('T')[0],
-      username: currentUser.username || 'guest',
-      customerId: currentUser.id || Math.floor(Math.random() * 1000), // Fallback random ID
-      book: cart.map(item => item.title).join(', '),
-      price: cart.map(item => `${item.price.toFixed(2)}`).join(', '),
-      totalAmount: `${totalPrice}`,
+    setIsLoading(true);
+    setError(null);
+
+    const orderId = Math.floor(Math.random() * 1_000_000_000);
+    const payload = {
+      customerid: customerId,
+      orderid: orderId,
+      items: cart.map(item => ({
+        bookid: item.id,
+        quantity: item.quantity,
+        unitprice: item.price
+      })),
       paymentMethod: paymentMethods.find(pm => pm.id === selectedPayment)?.name || selectedPayment,
-      orderStatus: 'pending'
     };
 
-    // Store the order in localStorage
-    const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    localStorage.setItem('orders', JSON.stringify([...existingOrders, newOrder]));
+    try {
+      const res = await fetch('http://localhost:8080/confirmpurchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    alert('Thank you for your purchase! Your order has been placed.');
-    setCart([]);
-    setSelectedPayment('');
+      if (!res.ok) {
+        throw new Error(`Server responded with status: ${res.status}`);
+      }
+
+      alert('Thank you for your purchase!');
+      setCart([]);
+      setSelectedPayment('');
+    } catch (err) {
+      console.error('Purchase confirmation error:', err);
+      setError(err instanceof Error ? err.message : 'Error confirming purchase');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const navigateToLogin = () => {
-    // Store current cart in localStorage to restore it after login
     localStorage.setItem('savedCart', JSON.stringify(cart));
-    router.push('/login'); // Navigate to login page
+    router.push('/login');
   };
 
-  const totalPrice = cart.reduce((acc, item) => acc + item.price, 0).toFixed(2);
+  const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
 
   return (
-    <motion.div 
+    <motion.div
       className="shop"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
@@ -103,12 +127,8 @@ function Shop() {
       </div>
 
       <div className="shop-grid">
-        {products.map((product) => (
-          <motion.div 
-            key={product.id} 
-            className="shop-card"
-            whileHover={{ scale: 1.05 }}
-          >
+        {products.map(product => (
+          <motion.div key={product.id} className="shop-card" whileHover={{ scale: 1.05 }}>
             <img src={product.image} alt={product.title} />
             <h2>{product.title}</h2>
             <p>${product.price.toFixed(2)}</p>
@@ -117,7 +137,6 @@ function Shop() {
         ))}
       </div>
 
-      {/* Cart Section */}
       <div className="cart-details">
         <h2>🛒 Your Cart</h2>
         {cart.length === 0 ? (
@@ -127,14 +146,13 @@ function Shop() {
             <ul>
               {cart.map((item, index) => (
                 <li key={index}>
-                  {item.title} - ${item.price.toFixed(2)}
+                  {item.title} - ${item.price.toFixed(2)} x {item.quantity}
                   <button className="remove-button" onClick={() => handleRemoveFromCart(index)}>Remove</button>
                 </li>
               ))}
             </ul>
             <h3>Total: ${totalPrice}</h3>
-            
-            {/* Payment Method Selection */}
+
             <div className="payment-methods">
               <h4>Select Payment Method:</h4>
               <div className="payment-options">
@@ -153,15 +171,16 @@ function Shop() {
                 ))}
               </div>
             </div>
-            
-            <button className="confirm-button" onClick={handleConfirmPurchase}>
-              Confirm Purchase
+
+            <button className="confirm-button" onClick={handleConfirmPurchase} disabled={isLoading}>
+              {isLoading ? 'Processing...' : 'Confirm Purchase'}
             </button>
+
+            {error && <p className="error-message">{error}</p>}
           </>
         )}
       </div>
 
-      {/* Login Modal */}
       {showLoginModal && (
         <div className="login-modal-overlay">
           <div className="login-modal">
