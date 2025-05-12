@@ -25,21 +25,4 @@
     margin-bottom: 2rem;
   }
   
-  .shop-now-btn {
-    display: inline-block;
-    padding: 0.8rem 2rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #fff;
-    background: #ff7675;
-    border: none;
-    border-radius: 2rem;
-    text-decoration: none;
-    transition: background 0.3s, transform 0.3s;
-  }
-  
-  .shop-now-btn:hover {
-    background: #ff4d4d;
-    transform: translateY(-5px);
-  }
   
