@@ -29,4 +29,15 @@
   .navbar-links a:hover {
     color: #ff5c5c; /* Nice pink-red hover color */
   }
-  
+  .login-button {
+    margin-left: 4px;
+    background-color:#A1E2CF;
+    color:black;
+    border:none;
+    border-radius: 10rem;
+    padding: 10px 20px;
+    cursor: pointer;
+  }
+  .login-button:hover{
+    background-color: #82D9BF;
+  }
