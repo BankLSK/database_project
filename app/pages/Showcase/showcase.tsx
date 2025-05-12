@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useCart } from '../../context/CartContext';
 import './showcase.css';
 
 interface BookStock {
@@ -10,22 +11,46 @@ interface BookStock {
   title: string;
   category: string;
   quantity: number;
-  price: string;
+  price: number;
 }
 
 export default function ShowcasePage() {
   const searchParams = useSearchParams();
   const category = searchParams.get('category') || '';
   const [books, setBooks] = useState<BookStock[]>([]);
+  const { addToCart } = useCart(); //use cart context
 
   useEffect(() => {
-    const storedStock = localStorage.getItem('stock');
-    const parsedStock: BookStock[] = storedStock ? JSON.parse(storedStock) : [];
-    const filtered = parsedStock.filter(
-      book => book.category.toLowerCase() === category.toLowerCase()
-    );
-    setBooks(filtered);
+    if (!category) return;
+
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch(`http://localhost:8080/getbooks?category=${encodeURIComponent(category)}`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch books');
+        }
+
+        const data = await res.json();
+        console.log("Fetched books:", data);
+
+        if (!data || !Array.isArray(data)) {
+          throw new Error('Invalid data format');
+        }
+
+        setBooks(data);
+        localStorage.setItem('stock', JSON.stringify(data));
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setBooks([]);  // fallback to empty array to avoid crash
+      }
+    };
+
+    fetchBooks();
   }, [category]);
+
+  useEffect(() => {
+    console.log('Books being rendered:', books);
+  }, [books]);
 
   const handleAddToCart = (book: BookStock) => {
     if (book.quantity < 1) {
@@ -33,28 +58,17 @@ export default function ShowcasePage() {
       return;
     }
 
-    // Update cart
-    const storedCart = localStorage.getItem('cart');
-    const cart = storedCart ? JSON.parse(storedCart) : [];
-    cart.push({ id: book.id, title: book.title, price: parseFloat(book.price.replace('$', '')) });
-    localStorage.setItem('cart', JSON.stringify(cart));
+    // Add to cart using context
+    addToCart({ id: book.id, title: book.title, price: book.price, quantity: 1 });
 
-    // Update stock
-    const storedStock = localStorage.getItem('stock');
-    const stock: BookStock[] = storedStock ? JSON.parse(storedStock) : [];
-    const updatedStock = stock.map(b =>
-      b.id === book.id ? { ...b, quantity: b.quantity - 1 } : b
-    );
-    localStorage.setItem('stock', JSON.stringify(updatedStock));
-
-    // Update local state
+    // Update book list to reflect stock decrease
     const updatedBooks = books.map(b =>
-      b.id === book.id ? { ...b, quantity: b.quantity - 1 } : b
-    );
-    setBooks(updatedBooks);
+    b.id === book.id ? { ...b, quantity: b.quantity - 1 } : b
+  );
+  setBooks(updatedBooks);
 
-    alert(`${book.title} added to cart`);
-  };
+  alert(`${book.title} added to cart`);
+};
 
   return (
     <motion.div
@@ -79,12 +93,12 @@ export default function ShowcasePage() {
             </tr>
           </thead>
           <tbody>
-            {books.map(book => (
-              <tr key={book.id}>
+            {books.map((book, index) => (
+              <tr key={`${book.id ?? 'book'}-${index}`}>
                 <td>{book.title}</td>
                 <td>{book.category}</td>
                 <td>{book.quantity}</td>
-                <td>{book.price}</td>
+                <td>${book.price.toFixed(2)}</td>
                 <td>
                   <button
                     onClick={() => handleAddToCart(book)}

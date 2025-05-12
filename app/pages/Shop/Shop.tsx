@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useCart } from '../../context/CartContext';
 import './Shop.css';
 
 const products = [
@@ -21,38 +22,13 @@ const paymentMethods = [
 ];
 
 function Shop() {
-  const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
+  const { isAuthenticated, customerId } = useAuth();
+  const { cart, addToCart, removeFromCart } = useCart(); // ✅ Use cart context
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, customerId } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    const savedCart = localStorage.getItem('savedCart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-      localStorage.removeItem('savedCart');
-    }
-  }, []);
-
-  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
-    const existingIndex = cart.findIndex(item => item.id === product.id);
-    if (existingIndex !== -1) {
-      const updatedCart = [...cart];
-      updatedCart[existingIndex].quantity += 1;
-      setCart(updatedCart);
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-    }
-  };
-
-  const handleRemoveFromCart = (index: number) => {
-    const updatedCart = [...cart];
-    updatedCart.splice(index, 1);
-    setCart(updatedCart);
-  };
 
   const handleConfirmPurchase = async () => {
     if (!isAuthenticated) {
@@ -92,13 +68,11 @@ function Shop() {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
-        throw new Error(`Server responded with status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
 
       alert('Thank you for your purchase!');
-      setCart([]);
-      setSelectedPayment('');
+      localStorage.removeItem('cart'); // Optional: context can also expose a `clearCart()` method
+      location.reload(); // quick refresh to clear context (or use a proper clear function)
     } catch (err) {
       console.error('Purchase confirmation error:', err);
       setError(err instanceof Error ? err.message : 'Error confirming purchase');
@@ -108,7 +82,6 @@ function Shop() {
   };
 
   const navigateToLogin = () => {
-    localStorage.setItem('savedCart', JSON.stringify(cart));
     router.push('/login');
   };
 
@@ -132,7 +105,7 @@ function Shop() {
             <img src={product.image} alt={product.title} />
             <h2>{product.title}</h2>
             <p>${product.price.toFixed(2)}</p>
-            <button onClick={() => handleAddToCart(product)}>Add to Cart</button>
+            <button onClick={() => addToCart({ ...product, quantity: 1 })}>Add to Cart</button>
           </motion.div>
         ))}
       </div>
@@ -147,7 +120,7 @@ function Shop() {
               {cart.map((item, index) => (
                 <li key={index}>
                   {item.title} - ${item.price.toFixed(2)} x {item.quantity}
-                  <button className="remove-button" onClick={() => handleRemoveFromCart(index)}>Remove</button>
+                  <button className="remove-button" onClick={() => removeFromCart(item.id)}>Remove</button>
                 </li>
               ))}
             </ul>

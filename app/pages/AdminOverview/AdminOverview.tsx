@@ -21,6 +21,11 @@ interface BookStock {
   category: string;
   quantity: number;
   price: string;
+  isbn?: string;
+  author?: string;
+  publisher?: string;
+  language?: string;
+  publishYear?: number;
 }
 
 interface Order {
@@ -35,10 +40,14 @@ interface Order {
   orderStatus: 'pending' | 'success';
 }
 
+const API_BASE_URL = 'http://localhost:8080';
+
+
 export function AdminOverview() {
   const [users, setUsers] = useState<User[]>([]);
   const [stock, setStock] = useState<BookStock[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
@@ -105,7 +114,31 @@ export function AdminOverview() {
     ];
     const storedOrders = JSON.parse(localStorage.getItem('orders') || 'null') || defaultOrders;
     setOrders(storedOrders);
+
+    checkApiConnection();
   }, []);
+
+   const checkApiConnection = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`, { 
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add timeout to avoid long waits
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        setApiError(null);
+      } else {
+        setApiError("Warning: API connection issues detected. Using local data instead.");
+      }
+    } catch (error) {
+      console.warn("API connection error:", error);
+      setApiError("Warning: Backend API not available. Using local data instead.");
+    }
+  };
 
   const totalSales = orders.reduce((sum, order) => {
     const priceNumber = parseFloat(order.price.replace('$', ''));
@@ -154,11 +187,50 @@ export function AdminOverview() {
   };
 
   // --- Handlers: Book ---
-  const handleDeleteBook = (id: number) => {
+   const handleDeleteBook = async (id: number) => {
+  try {
+    // Show pending state
+    const bookToDelete = stock.find(book => book.id === id);
+    if (!bookToDelete) {
+      console.log(`Book with ID ${id} not found`);
+      return;
+    }
+    
+    console.log(`Deleting book: ${bookToDelete.title} (ID: ${id})`);
+    
+    // Update local state first (optimistic update)
     const updated = stock.filter(book => book.id !== id);
     setStock(updated);
     localStorage.setItem('stock', JSON.stringify(updated));
-  };
+    
+    // Then try API with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const url = `${API_BASE_URL}/deletebook/${id}`;
+    console.log("Delete URL:", url);
+    console.log("Attempting to delete book with URL:", url);
+    
+    const response = await fetch(`${API_BASE_URL}/books/delete?id=${id}`, {
+      method: 'DELETE',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
+    
+    setApiError(null);
+    console.log(`Book ${id} deleted successfully from API`);
+    
+  } catch (error) {
+    console.error('Error deleting book from API:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    setApiError(`Warning: Backend sync failed. Book deleted locally only. (${errorMessage})`);
+  }
+};
 
   const handleEditBook = (id: number) => {
     const book = stock.find(b => b.id === id);
@@ -168,12 +240,72 @@ export function AdminOverview() {
     }
   };
 
-  const handleSaveBook = () => {
-    const updated = stock.map(b => (b.id === editedBook.id ? editedBook : b));
-    setStock(updated);
-    localStorage.setItem('stock', JSON.stringify(updated));
+  const handleSaveBook = async () => {
+  if (editingBookId === null) return;
+
+  try {
+    // Log what we're attempting to save
+    console.log("Attempting to save book with ID:", editingBookId);
+    console.log("Book data:", editedBook);
+    
+    // Optimistic UI update first
+    const updatedStock = stock.map(book => book.id === editingBookId ? editedBook : book);
+    setStock(updatedStock);
+    localStorage.setItem('stock', JSON.stringify(updatedStock));
+    
+    // Format data for API
+    const bookData = {
+      bookid: editingBookId,
+      title: editedBook.title || "",
+      category: editedBook.category || "",
+      quantity: Number(editedBook.quantity) || 0,
+      price: parseFloat((editedBook.price || "").replace('$', '')) || 0,
+      isbn: editedBook.isbn || "",
+      author: editedBook.author || "",
+      publisher: editedBook.publisher || "",
+      language: editedBook.language || "",
+      publish_year: Number(editedBook.publishYear) || 2024,
+    };
+    
+    console.log("Formatted data for API:", bookData);
+    
+    // Then try API
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    // Use the correct endpoint
+    const url = `${API_BASE_URL}/books/update`;
+    console.log("Making PUT request to:", url);
+    
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bookData),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // Try to get more detailed error info
+      const errorText = await response.text().catch(() => 'No error details available');
+      console.error(`Server error (${response.status}):`, errorText);
+      throw new Error(`Server returned ${response.status}: ${errorText}`);
+    }
+    
+    setApiError(null);
+    console.log("Book saved successfully");
+
+  } catch (error) {
+    console.error('Error updating book:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    setApiError(`Warning: Backend sync failed. Changes saved locally only. (${errorMessage})`);
+  } finally {
     setEditingBookId(null);
-  };
+  }
+};
 
   const handleChangeBook = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -190,11 +322,59 @@ export function AdminOverview() {
     setNewBook(prev => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
   };
 
-  const handleSaveNewBook = () => {
-    const updated = [...stock, newBook];
-    setStock(updated);
-    localStorage.setItem('stock', JSON.stringify(updated));
-    setAddingBook(false);
+  const handleSaveNewBook = async () => {
+    try {
+      // Validate required fields first
+      if (!newBook.title || !newBook.category) {
+        alert('Please fill in all required fields');
+        return;
+      }
+      
+      // Format price properly if needed
+      const formattedPrice = newBook.price.startsWith('$') ? newBook.price : `$${newBook.price}`;
+      const bookToAdd = {...newBook, price: formattedPrice};
+      
+      // Update local state first (optimistic UI)
+      const updated = [...stock, bookToAdd];
+      setStock(updated);
+      localStorage.setItem('stock', JSON.stringify(updated));
+      setAddingBook(false);
+      
+      // Then try API
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${API_BASE_URL}/addbook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newBook.title,
+          isbn: String(newBook.id), // or generate real ISBN if applicable
+          author: newBook.author || 'Unknown',
+          publisher: newBook.publisher || 'Unknown',
+          category: newBook.category,
+          language: newBook.language || 'English',
+          publish_year: newBook.publishYear || 2024,
+          quantity: newBook.quantity,
+          price: parseFloat(newBook.price.replace('$', '')) || 0,
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+      
+      setApiError(null);
+      
+    } catch (error) {
+      console.error('Error adding new book:', error);
+      setApiError("Warning: Backend sync failed. Changes saved locally only.");
+    }
   };
 
   // --- Handler: Confirm Payment ---

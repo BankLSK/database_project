@@ -117,3 +117,38 @@ func DeleteCategory(db *sql.DB, id int) error {
 	log.Printf("Deleted category ID %d", id)
 	return nil
 }
+
+type BookWithCategory struct {
+	ID       int     `json:"id"`
+	Title    string  `json:"title"`
+	Category string  `json:"category"` // This is the name, not the ID
+	Quantity int     `json:"quantity"`
+	Price    float64 `json:"price"`
+}
+
+func GetBooksByCategoryName(db *sql.DB, categoryName string) ([]BookWithCategory, error) {
+	books := []BookWithCategory{}
+
+	query := `
+		SELECT b.bookid, b.title, c.categoryname, b.quantity, b.price
+		FROM book b
+		INNER JOIN category c ON b.categoryid = c.categoryid
+		WHERE c.categoryname = $1
+	`
+
+	rows, err := db.Query(query, categoryName)
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var book BookWithCategory
+		if err := rows.Scan(&book.ID, &book.Title, &book.Category, &book.Quantity, &book.Price); err != nil {
+			return nil, fmt.Errorf("scan error: %w", err)
+		}
+		books = append(books, book)
+	}
+
+	return books, nil
+}
