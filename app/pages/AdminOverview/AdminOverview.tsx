@@ -21,10 +21,10 @@ interface BookStock {
   category: string;
   quantity: number;
   price: string;
-  author_id: string;
-  publisher_id: string;
-  publish_year: string;
-  language_id: string;
+  author: string;
+  publisher: string;
+  publishYear: number;
+  language: string;
 }
 
 interface Order {
@@ -66,12 +66,12 @@ export function AdminOverview() {
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author_id: '', publisher_id: '', publish_year:'', language_id:''});
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author_id: '', publisher_id: '', publish_year:'', language_id:''});
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
 
   // Pagination states
   const [orderPage, setOrderPage] = useState(1);
@@ -304,7 +304,6 @@ export function AdminOverview() {
       category: editedBook.category || "",
       quantity: Number(editedBook.quantity) || 0,
       price: parseFloat((editedBook.price || "").replace('$', '')) || 0,
-      isbn: editedBook.isbn || "",
       author: editedBook.author || "",
       publisher: editedBook.publisher || "",
       language: editedBook.language || "",
@@ -358,7 +357,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author_id: '', publisher_id: '', publish_year:'', language_id:'' });
+    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0 });
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -525,10 +524,10 @@ export function AdminOverview() {
                 <td>{editingBookId === book.id ? <input name="category" value={editedBook.category} onChange={handleChangeBook} /> : book.category}</td>
                 <td>{editingBookId === book.id ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
                 <td>{editingBookId === book.id ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
-                <td>{editingBookId === book.id ? <input name="author_id" value={editedBook.author_id} onChange={handleChangeBook} /> : book.author_id}</td>
-                <td>{editingBookId === book.id ? <input name="publisher_id" value={editedBook.publisher_id} onChange={handleChangeBook} /> : book.publisher_id}</td>
-                <td>{editingBookId === book.id ? <input name="publish_year" value={editedBook.publish_year} onChange={handleChangeBook} /> : book.publish_year}</td>
-                <td>{editingBookId === book.id ? <input name="language_id" value={editedBook.language_id} onChange={handleChangeBook} /> : book.language_id}</td>
+                <td>{editingBookId === book.id ? <input name="author_id" value={editedBook.author} onChange={handleChangeBook} /> : book.author}</td>
+                <td>{editingBookId === book.id ? <input name="publisher_id" value={editedBook.publisher} onChange={handleChangeBook} /> : book.publisher}</td>
+                <td>{editingBookId === book.id ? <input name="publish_year" value={editedBook.publishYear} onChange={handleChangeBook} /> : book.publishYear}</td>
+                <td>{editingBookId === book.id ? <input name="language_id" value={editedBook.language} onChange={handleChangeBook} /> : book.language}</td>
                 <td className="admin-actions">
                   {editingBookId === book.id ? (
                     <>
@@ -551,10 +550,10 @@ export function AdminOverview() {
                 <td><input name="category" value={newBook.category} onChange={handleChangeNewBook} /></td>
                 <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
                 <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
-                <td><input name="author_id" value={newBook.author_id} onChange={handleChangeNewBook} /></td>
-                <td><input name="publisher_id" value={newBook.publisher_id} onChange={handleChangeNewBook} /></td>
-                <td><input name="publish_year" value={newBook.publish_year} onChange={handleChangeNewBook} /></td>
-                <td><input name="language_id" value={newBook.language_id} onChange={handleChangeNewBook} /></td>
+                <td><input name="author_id" value={newBook.author} onChange={handleChangeNewBook} /></td>
+                <td><input name="publisher_id" value={newBook.publisher} onChange={handleChangeNewBook} /></td>
+                <td><input name="publish_year" value={newBook.publishYear} onChange={handleChangeNewBook} /></td>
+                <td><input name="language_id" value={newBook.language} onChange={handleChangeNewBook} /></td>
                 <td className="admin-actions">
                   <button onClick={handleSaveNewBook}>Add</button>
                   <button onClick={() => setAddingBook(false)}>Cancel</button>
