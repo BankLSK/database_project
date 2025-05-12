@@ -31,13 +31,13 @@
   }
   .login-button {
     margin-left: 4px;
-    background-color:#A1E2CF;
-    color:black;
+    background-color:black;
+    color:white;
     border:none;
     border-radius: 10rem;
-    padding: 10px 20px;
+    padding: 10px 25px;
     cursor: pointer;
   }
   .login-button:hover{
-    background-color: #82D9BF;
+    background-color: #1F1F1F;
   }
