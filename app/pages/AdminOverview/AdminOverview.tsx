@@ -25,9 +25,14 @@ interface BookStock {
 
 interface Order {
   id: number;
+  orderDate: string;
   username: string;
+  customerId: number;
   book: string;
   price: string;
+  totalAmount: string;
+  paymentMethod: string;
+  orderStatus: 'pending' | 'success';
 }
 
 export function AdminOverview() {
@@ -64,9 +69,39 @@ export function AdminOverview() {
     setStock(storedStock);
 
     const defaultOrders: Order[] = [
-      { id: 1, username: 'JohnDoe', book: 'One Piece Vol.1', price: '$12.99' },
-      { id: 2, username: 'JaneSmith', book: 'Naruto Vol.5', price: '$10.99' },
-      { id: 3, username: 'CoolGuy', book: 'Attack on Titan Vol.2', price: '$15.99' },
+      { 
+        id: 1, 
+        orderDate: '2025-05-10', 
+        username: 'JohnDoe', 
+        customerId: 101, 
+        book: 'One Piece Vol.1', 
+        price: '$12.99',
+        totalAmount: '$12.99',
+        paymentMethod: 'Credit Card',
+        orderStatus: 'pending'
+      },
+      { 
+        id: 2, 
+        orderDate: '2025-05-09', 
+        username: 'JaneSmith', 
+        customerId: 102, 
+        book: 'Naruto Vol.5', 
+        price: '$10.99',
+        totalAmount: '$10.99',
+        paymentMethod: 'PayPal',
+        orderStatus: 'pending'
+      },
+      { 
+        id: 3, 
+        orderDate: '2025-05-08', 
+        username: 'CoolGuy', 
+        customerId: 103, 
+        book: 'Attack on Titan Vol.2', 
+        price: '$15.99',
+        totalAmount: '$15.99',
+        paymentMethod: 'Debit Card',
+        orderStatus: 'success'
+      },
     ];
     const storedOrders = JSON.parse(localStorage.getItem('orders') || 'null') || defaultOrders;
     setOrders(storedOrders);
@@ -162,6 +197,19 @@ export function AdminOverview() {
     setAddingBook(false);
   };
 
+  // --- Handler: Confirm Payment ---
+  const handleConfirmPayment = (orderId: number) => {
+    const updatedOrders = orders.map(order => {
+      if (order.id === orderId) {
+        return { ...order, orderStatus: 'success' as const };
+      }
+      return order;
+    });
+    setOrders(updatedOrders);
+    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    console.log('Payment confirmed for order:', orderId);
+  };
+
   // --- Render ---
   return (
     <div className="admin-container">
@@ -182,19 +230,44 @@ export function AdminOverview() {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>#</th>
-              <th>User Name</th>
+              <th>Order ID</th>
+              <th>Order Date</th>
+              <th>Username</th>
+              <th>Customer ID</th>
               <th>Book</th>
               <th>Price</th>
+              <th>Total Amount</th>
+              <th>Payment Method</th>
+              <th>Order Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedOrders.map(order => (
               <tr key={order.id}>
                 <td>{order.id}</td>
+                <td>{order.orderDate}</td>
                 <td>{order.username}</td>
+                <td>{order.customerId}</td>
                 <td>{order.book}</td>
                 <td>{order.price}</td>
+                <td>{order.totalAmount}</td>
+                <td>{order.paymentMethod}</td>
+                <td>
+                  <span className={`status-badge ${order.orderStatus || 'pending'}`}>
+                    {order.orderStatus ? (order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)) : 'Pending'}
+                  </span>
+                </td>
+                <td className="admin-actions">
+                  {(!order.orderStatus || order.orderStatus === 'pending') && (
+                    <button 
+                      className="confirm-button"
+                      onClick={() => handleConfirmPayment(order.id)}
+                    >
+                      Confirm Payment
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

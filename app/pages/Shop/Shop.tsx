@@ -1,176 +1,95 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../context/AuthContext'; // Import useAuth from your AuthContext
 import './Shop.css';
 
-const initialProducts = [
-  { id: 1, title: 'One Piece', price: 9.99, image: '/manga/onepiece.jpg', stock: 10 },
-  { id: 2, title: 'Naruto', price: 8.99, image: '/manga/naruto.jpg', stock: 8 },
-  { id: 3, title: 'Attack on Titan', price: 10.99, image: '/manga/aot.jpg', stock: 5 },
-  { id: 4, title: 'Demon Slayer', price: 7.99, image: '/manga/demonslayer.jpg', stock: 7 },
+const products = [
+  { id: 1, title: 'One Piece', price: 9.99, image: '/manga/onepiece.jpg' },
+  { id: 2, title: 'Naruto', price: 8.99, image: '/manga/naruto.jpg' },
+  { id: 3, title: 'Attack on Titan', price: 10.99, image: '/manga/aot.jpg' },
+  { id: 4, title: 'Demon Slayer', price: 7.99, image: '/manga/demonslayer.jpg' },
 ];
 
-type Product = typeof initialProducts[number];
+const paymentMethods = [
+  { id: 'credit', name: 'Credit Card' },
+  { id: 'paypal', name: 'PayPal' },
+  { id: 'debit', name: 'Debit Card' },
+  { id: 'bank', name: 'Bank Transfer' },
+];
 
 function Shop() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<Product[]>([]);
-
-  // Load products and cart from localStorage
+  const [cart, setCart] = useState<{ id: number; title: string; price: number }[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const router = useRouter();
+  const { isLoggedIn, role } = useAuth(); // Get authentication state from context
+  
+  // Retrieve saved cart if it exists
   useEffect(() => {
-    const storedProducts = localStorage.getItem('products');
-    const storedCart = localStorage.getItem('cart');
-
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    } else {
-      setProducts(initialProducts);
-      localStorage.setItem('products', JSON.stringify(initialProducts));
-    }
-
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
+    const savedCart = localStorage.getItem('savedCart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+      localStorage.removeItem('savedCart'); // Clear saved cart after retrieving
     }
   }, []);
 
-  const updateCart = (newCart: Product[]) => {
-    setCart(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart));
+  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
+    setCart([...cart, product]);
   };
 
-  const updateProducts = (newProducts: Product[]) => {
-    setProducts(newProducts);
-    localStorage.setItem('products', JSON.stringify(newProducts));
+  const handleRemoveFromCart = (index: number) => {
+    const updatedCart = [...cart];
+    updatedCart.splice(index, 1);
+    setCart(updatedCart);
   };
 
-  const handleAddToCart = (product: Product) => {
-    if (product.stock <= 0) {
-      alert('Out of stock!');
+  const handleConfirmPurchase = () => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
       return;
     }
 
-    const updatedCart = [...cart, product];
-    updateCart(updatedCart);
-  };
-
- const handleRemoveFromCart = (index: number) => {
-  const updatedCart = [...cart];
-  const removedItem = updatedCart.splice(index, 1)[0];
-
-  // Restore stock
-  const updatedProducts = products.map(p =>
-    p.id === removedItem.id ? { ...p, stock: p.stock + 1 } : p
-  );
-
-  updateProducts(updatedProducts);
-  updateCart(updatedCart);
-};
-
-
-  const handleConfirmPurchase = () => {
-    const updatedProducts = [...products];
-
-    for (const item of cart) {
-      const prodIndex = updatedProducts.findIndex((p) => p.id === item.id);
-      if (prodIndex !== -1 && updatedProducts[prodIndex].stock > 0) {
-        updatedProducts[prodIndex].stock -= 1;
-      }
+    if (!selectedPayment) {
+      alert('Please select a payment method before confirming your purchase');
+      return;
     }
 
-    updateProducts(updatedProducts);
-    updateCart([]);
-    alert('Purchase confirmed!');
+    // Get current user
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    // Create order
+    const newOrder = {
+      id: Date.now(),
+      orderDate: new Date().toISOString().split('T')[0],
+      username: currentUser.username || 'guest',
+      customerId: currentUser.id || Math.floor(Math.random() * 1000), // Fallback random ID
+      book: cart.map(item => item.title).join(', '),
+      price: cart.map(item => `${item.price.toFixed(2)}`).join(', '),
+      totalAmount: `${totalPrice}`,
+      paymentMethod: paymentMethods.find(pm => pm.id === selectedPayment)?.name || selectedPayment,
+      orderStatus: 'pending'
+    };
+
+    // Store the order in localStorage
+    const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    localStorage.setItem('orders', JSON.stringify([...existingOrders, newOrder]));
+
+    alert('Thank you for your purchase! Your order has been placed.');
+    setCart([]);
+    setSelectedPayment('');
+  };
+
+  const navigateToLogin = () => {
+    // Store current cart in localStorage to restore it after login
+    localStorage.setItem('savedCart', JSON.stringify(cart));
+    router.push('/login'); // Navigate to login page
   };
 
   const totalPrice = cart.reduce((acc, item) => acc + item.price, 0).toFixed(2);
 
-  const cartItems=cart.reduce((acc, item)=>{
-    const existing=acc.find(i=>i.book_id===item.id);
-    if (existing){
-      existing.quantity+=1;
-      existing.subtotal+=item.price;
-    }else{
-      acc.push({
-        book_id:item.id,
-        quantity: 1,
-        unit_price: item.price,
-        subtotal: item.price
-      });
-    }
-
-    return acc;
-  },[] as {
-    book_id: number;
-    quantity: number;
-    unit_price: number;
-    subtotal: number;
-  }[]);
-
-  const handleCheckout=async()=>{
-    try{
-      const latestStock=await fetch("http://localhost:8000/books")
-      .then ((res)=> res.json())
-      .catch(()=>{
-        alert("Impossible to retrieve the current stock");
-        return [];
-      });
-
-      for (const cartItem of cart){
-        const book=latestStock.find((b:any)=>b.id===cartItem.id);
-        if (!book){
-          alert("Book ID${cartItem.id} not found");
-          return;
-        }
-
-        const countInCart=cart.filter((i)=>i.id===cartItem.id).length;
-        if (countInCart> book.stock){
-          alert('Not enough in stock "${book.title}"(stock:${book.stock}, cartt:${countInCart})');
-          return;
-        }
-      }
-      const saleData={
-        customer_id:selectedCustomerID,
-        staff_id:1,
-        payment_method:"card",
-        payment_status:"paid",
-        items:cart.reduce((acc,product)=>{
-                const existing = acc.find(i => i.book_id === product.id);
-          if (existing) {
-            existing.quantity += 1;
-            existing.subtotal += product.price;
-          } else {
-            acc.push({
-              book_id: product.id,
-              quantity: 1,
-              unit_price: product.price,
-              subtotal: product.price
-            });
-          }
-          return acc;
-        }, [] as {
-          book_id: number;
-          quantity: number;
-          unit_price: number;
-          subtotal: number;
-        }[])
-      }
-      const response =await fetch('http://localhost:8000/orders',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(saleData)
-      });
-      if (!response.ok) throw new Error('Checkout has failed');
-
-      const data=await response.json();
-      alert('Thank you for your purchase!');
-      setCart([]);
-    }
-    catch (err){
-      console.error(err);
-      alert('Error while processing checkout')
-    }
-  };
   return (
     <motion.div 
       className="shop"
@@ -193,55 +112,68 @@ function Shop() {
             <img src={product.image} alt={product.title} />
             <h2>{product.title}</h2>
             <p>${product.price.toFixed(2)}</p>
-            <p>Stock: {product.stock}</p>
-            <button 
-              disabled={product.stock === 0}
-              onClick={() => handleAddToCart(product)}
-            >
-              {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </button>
+            <button onClick={() => handleAddToCart(product)}>Add to Cart</button>
           </motion.div>
         ))}
       </div>
 
+      {/* Cart Section */}
       <div className="cart-details">
         <h2>🛒 Your Cart</h2>
         {cart.length === 0 ? (
-          <p>No items in cart.</p>
+          <p>No items in cart yet.</p>
         ) : (
           <>
             <ul>
               {cart.map((item, index) => (
                 <li key={index}>
-                  {item.title} - ${item.price.toFixed(2)} 
-                  <button onClick={() => handleRemoveFromCart(index)}>Remove</button>
+                  {item.title} - ${item.price.toFixed(2)}
+                  <button className="remove-button" onClick={() => handleRemoveFromCart(index)}>Remove</button>
                 </li>
               ))}
             </ul>
             <h3>Total: ${totalPrice}</h3>
-            <button className="confirm-button" onClick={handleCheckout}>
+            
+            {/* Payment Method Selection */}
+            <div className="payment-methods">
+              <h4>Select Payment Method:</h4>
+              <div className="payment-options">
+                {paymentMethods.map(method => (
+                  <div key={method.id} className="payment-option">
+                    <input
+                      type="radio"
+                      id={method.id}
+                      name="payment"
+                      value={method.id}
+                      checked={selectedPayment === method.id}
+                      onChange={(e) => setSelectedPayment(e.target.value)}
+                    />
+                    <label htmlFor={method.id}>{method.name}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <button className="confirm-button" onClick={handleConfirmPurchase}>
               Confirm Purchase
             </button>
           </>
         )}
-        <h3>Total: ${totalPrice}</h3>
-        <div>
-          <label htmlFor="customers">Select Customer:</label>
-          <select
-          id="customer"
-          value={selectedCustomerID ?? ""}
-          onChange={(e)=>setSelectedCustomerID(Number(e.target.value))}>
-            <option value="">-- Chooose a customer --</option>
-            {
-              customers.map((c)=>(
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.email})
-                </option>
-              ))
-            }
-          </select>
-        </div>
       </div>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="login-modal-overlay">
+          <div className="login-modal">
+            <h3>Login Required</h3>
+            <p>You need to login before completing your purchase.</p>
+            <div className="modal-buttons">
+              <button onClick={navigateToLogin}>Go to Login</button>
+              <button onClick={() => setShowLoginModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
