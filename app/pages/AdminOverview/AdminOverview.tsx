@@ -747,10 +747,10 @@ const handleConfirmPayment = async (orderId: number) => {
               <th>Category</th>
               <th>Quantity</th>
               <th>Price</th>
-              <th>Author ID</th>
-              <th>Publisher ID</th>
+              <th>Author Name</th>
+              <th>Publisher Name</th>
               <th>Publish Year</th>
-              <th>Language ID</th>
+              <th>Language</th>
               <th>Actions</th>
             </tr>
           </thead>
