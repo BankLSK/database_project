@@ -149,69 +149,71 @@ export function AdminOverview() {
   }, []);
 
 //
-  const totalSales = orders.reduce((sum, order) => {
+//   const totalSales = orders.reduce((sum, order) => {
+//     const priceNumber = parseFloat(order.price.replace('$', ''));
+//     return sum + priceNumber;
+//   }, 0).toFixed(2);
  
-  useEffect(() => {
-  // Safe parse pour array
-  const safeParseArray = <T,>(raw: string | null, fallback: T[]): T[] => {
-    try {
-      const parsed = JSON.parse(raw || 'null');
-      return Array.isArray(parsed) ? parsed : fallback;
-    } catch {
-      return fallback;
-    }
-  };
+//   useEffect(() => {
+//   // Safe parse pour array
+//   const safeParseArray = <T,>(raw: string | null, fallback: T[]): T[] => {
+//     try {
+//       const parsed = JSON.parse(raw || 'null');
+//       return Array.isArray(parsed) ? parsed : fallback;
+//     } catch {
+//       return fallback;
+//     }
+//   };
 
-  const storedUsers = safeParseArray<User>(localStorage.getItem('users'), []);
-  setUsers(storedUsers);
+//   const storedUsers = safeParseArray<User>(localStorage.getItem('users'), []);
+//   setUsers(storedUsers);
 
-  const storedStock = safeParseArray<BookStock>(localStorage.getItem('stock'), []);
-  setStock(storedStock);
+//   const storedStock = safeParseArray<BookStock>(localStorage.getItem('stock'), []);
+//   setStock(storedStock);
 
-  const defaultOrders: Order[] = [
-    { 
-      id: 1, 
-      orderDate: '2025-05-10', 
-      username: 'JohnDoe', 
-      customerId: 101, 
-      book: 'One Piece Vol.1', 
-      price: '$12.99',
-      totalAmount: '$12.99',
-      paymentMethod: 'Credit Card',
-      orderStatus: 'pending'
-    },
-    { 
-      id: 2, 
-      orderDate: '2025-05-09', 
-      username: 'JaneSmith', 
-      customerId: 102, 
-      book: 'Naruto Vol.5', 
-      price: '$10.99',
-      totalAmount: '$10.99',
-      paymentMethod: 'PayPal',
-      orderStatus: 'pending'
-    },
-    { 
-      id: 3, 
-      orderDate: '2025-05-08', 
-      username: 'CoolGuy', 
-      customerId: 103, 
-      book: 'Attack on Titan Vol.2', 
-      price: '$15.99',
-      totalAmount: '$15.99',
-      paymentMethod: 'Debit Card',
-      orderStatus: 'success'
-    },
-  ];
+//   const defaultOrders: Order[] = [
+//     { 
+//       id: 1, 
+//       orderDate: '2025-05-10', 
+//       username: 'JohnDoe', 
+//       customerId: 101, 
+//       // book: 'One Piece Vol.1', 
+//       price: '$12.99',
+//       totalAmount: '$12.99',
+//       paymentMethod: 'Credit Card',
+//       orderStatus: 'pending'
+//     },
+//     { 
+//       id: 2, 
+//       orderDate: '2025-05-09', 
+//       username: 'JaneSmith', 
+//       customerId: 102, 
+//       // book: 'Naruto Vol.5', 
+//       price: '$10.99',
+//       totalAmount: '$10.99',
+//       paymentMethod: 'PayPal',
+//       orderStatus: 'pending'
+//     },
+//     { 
+//       id: 3, 
+//       orderDate: '2025-05-08', 
+//       username: 'CoolGuy', 
+//       customerId: 103, 
+//       // book: 'Attack on Titan Vol.2', 
+//       price: '$15.99',
+//       totalAmount: '$15.99',
+//       paymentMethod: 'Debit Card',
+//       orderStatus: 'success'
+//     },
+//   ];
 
-  const storedOrders = safeParseArray<Order>(localStorage.getItem('orders'), defaultOrders);
-  setOrders(storedOrders);
+//   const storedOrders = safeParseArray<Order>(localStorage.getItem('orders'), defaultOrders);
+//   setOrders(storedOrders);
 
-}, []);
+// }, []);
 
 
   const totalSales = orders.length>0 ? orders.reduce((sum, order) => {
-
     const priceNumber = parseFloat(order.price.replace('$', ''));
     return sum + priceNumber;
   }, 0).toFixed(2):'0.00';
