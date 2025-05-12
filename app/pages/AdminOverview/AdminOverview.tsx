@@ -29,6 +29,7 @@ interface BookStock {
   publisher: string;
   publishYear: number;
   language: string;
+  isbn: string;
 }
 
 interface Order {
@@ -62,12 +63,12 @@ export function AdminOverview() {
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ firstname: '', lastname: '', username: '', email: '', middlename: '', phone: '', address: '' });
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0});
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
 
 //=================================================================================
   // Pagination states
@@ -366,11 +367,12 @@ export function AdminOverview() {
       title: editedBook.title || "",
       category: editedBook.category || "",
       quantity: Number(editedBook.quantity) || 0,
-      price: parseFloat((editedBook.price || "").replace('$', '')) || 0,
+      price: parseFloat(String(editedBook.price || "").replace('$', '')) || 0,
       author: editedBook.author || "",
       publisher: editedBook.publisher || "",
       language: editedBook.language || "",
       publish_year: Number(editedBook.publishYear) || 2024,
+      isbn: editedBook.isbn || "",
     };
     
     console.log("Formatted data for API:", bookData);
@@ -420,7 +422,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0 });
+    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: '' });
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
