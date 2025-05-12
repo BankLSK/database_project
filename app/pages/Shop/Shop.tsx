@@ -168,7 +168,7 @@ function Shop() {
               {cart.map((item, index) => (
                 <li key={index}>
                   {item.title} - ${item.price.toFixed(2)} x {item.quantity}
-                  <button className="remove-button" onClick={() => handleRemoveFromCart(index)}>Remove</button>
+                  <button className="remove-button" onClick={() => removeFromCart(item.id)}>Remove</button>
                 </li>
               ))}
             </ul>
