@@ -19,17 +19,30 @@ interface User {
   address: string;
 }
 
+// interface BookStock {
+//   id: number;
+//   title: string;
+//   category: string;
+//   quantity: number;
+//   price: string;
+//   author: string;
+//   publisher: string;
+//   publishYear: number;
+//   language: string;
+//   isbn: string;
+// }
+
 interface BookStock {
-  id: number;
+  id: number;               // Maps to bookid
   title: string;
-  category: string;
-  quantity: number;
-  price: string;
-  author: string;
-  publisher: string;
-  publishYear: number;
-  language: string;
   isbn: string;
+  authorid: number;
+  publisherid: number;
+  publish_year: number;
+  categoryid: number;
+  quantity: number;
+  price: number;
+  languageid: number;
 }
 
 interface Order {
@@ -60,15 +73,30 @@ export function AdminOverview() {
   const [apiError, setApiError] = useState<string | null>(null);
 
 
+  // const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
+  // const [editedUser, setEditedUser] = useState<User>({ firstname: '', lastname: '', username: '', email: '', middlename: '', phone: '', address: '' });
+  // const [editingBookId, setEditingBookId] = useState<number | null>(null);
+  // const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
+
+  // const [userFilter, setUserFilter] = useState('');
+  // const [bookFilter, setBookFilter] = useState('');
+  // const [addingBook, setAddingBook] = useState(false);
+  // const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
+
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
-  const [editedUser, setEditedUser] = useState<User>({ firstname: '', lastname: '', username: '', email: '', middlename: '', phone: '', address: '' });
+  const [editedUser, setEditedUser] = useState<User>({ firstname: '', middlename: '', lastname: '', username: '', email: '', phone: '', address: ''
+  });
+
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', isbn: '', authorid: 0, publisherid: 0, categoryid: 0, languageid: 0, publish_year: 0, quantity: 0, price: 0
+  });
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', isbn: '', authorid: 0, publisherid: 0, categoryid: 0, languageid: 0, publish_year: 0, quantity: 0, price: 0
+  });
+
 
 //=================================================================================
   // Pagination states
@@ -102,6 +130,49 @@ export function AdminOverview() {
 
     fetchUsers();
   }, []);
+
+  // book stock table
+  useEffect(() => {
+    const fetchBooks = async () => {
+      const { data: booksData, error } = await supabase
+        .from('book')
+        .select(`
+          bookid,
+          title,
+          isbn,
+          authorid,
+          publisherid,
+          publish_year,
+          categoryid,
+          quantity,
+          price,
+          languageid
+        `);
+
+      if (error) {
+        console.error('Error fetching books:', error.message);
+        return;
+      }
+
+      const parsedBooks: BookStock[] = (booksData || []).map((b: any) => ({
+        id: b.bookid,
+        title: b.title,
+        isbn: b.isbn,
+        authorid: b.authorid,
+        publisherid: b.publisherid,
+        publish_year: b.publish_year,
+        categoryid: b.categoryid,
+        quantity: b.quantity,
+        price: parseFloat(b.price), // convert numeric to number
+        languageid: b.languageid,
+      }));
+
+      setStock(parsedBooks);
+    };
+
+    fetchBooks();
+  }, []);
+
 
  
   // lastest order table
@@ -362,18 +433,31 @@ export function AdminOverview() {
     localStorage.setItem('stock', JSON.stringify(updatedStock));
     
     // Format data for API
+    // const bookData = {
+    //   bookid: editingBookId,
+    //   title: editedBook.title || "",
+    //   category: editedBook.category || "",
+    //   quantity: Number(editedBook.quantity) || 0,
+    //   price: parseFloat(String(editedBook.price || "").replace('$', '')) || 0,
+    //   author: editedBook.author || "",
+    //   publisher: editedBook.publisher || "",
+    //   language: editedBook.language || "",
+    //   publish_year: Number(editedBook.publishYear) || 2024,
+    //   isbn: editedBook.isbn || "",
+    // };
     const bookData = {
       bookid: editingBookId,
       title: editedBook.title || "",
-      category: editedBook.category || "",
-      quantity: Number(editedBook.quantity) || 0,
-      price: parseFloat(String(editedBook.price || "").replace('$', '')) || 0,
-      author: editedBook.author || "",
-      publisher: editedBook.publisher || "",
-      language: editedBook.language || "",
-      publish_year: Number(editedBook.publishYear) || 2024,
       isbn: editedBook.isbn || "",
+      authorid: editedBook.authorid || 0,
+      publisherid: editedBook.publisherid || 0,
+      publish_year: Number(editedBook.publish_year) || 2024,
+      categoryid: editedBook.categoryid || 0,
+      quantity: Number(editedBook.quantity) || 0,
+      price: Number(editedBook.price) || 0,
+      languageid: editedBook.languageid || 0,
     };
+
     
     console.log("Formatted data for API:", bookData);
     
@@ -422,7 +506,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: '' });
+    setNewBook({ id: Date.now(), title: '', isbn: '', authorid: 0, publisherid: 0, publish_year: 0, categoryid: 0, quantity: 0, price: 0, languageid: 0,});
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -430,28 +514,78 @@ export function AdminOverview() {
     setNewBook(prev => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
   };
 
+  // const handleSaveNewBook = async () => {
+  //   try {
+  //     // Validate required fields first
+  //     if (!newBook.title || !newBook.category) {
+  //       alert('Please fill in all required fields');
+  //       return;
+  //     }
+      
+  //     // Format price properly if needed
+  //     const formattedPrice = newBook.price.startsWith('$') ? newBook.price : `$${newBook.price}`;
+  //     const bookToAdd = {...newBook, price: formattedPrice};
+      
+  //     // Update local state first (optimistic UI)
+  //     const updated = [...stock, bookToAdd];
+  //     setStock(updated);
+  //     localStorage.setItem('stock', JSON.stringify(updated));
+  //     setAddingBook(false);
+      
+  //     // Then try API
+  //     const controller = new AbortController();
+  //     const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+  //     const response = await fetch(`${API_BASE_URL}/addbook`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         title: newBook.title,
+  //         isbn: String(newBook.id), // or generate real ISBN if applicable
+  //         author: newBook.author || 'Unknown',
+  //         publisher: newBook.publisher || 'Unknown',
+  //         category: newBook.category,
+  //         language: newBook.language || 'English',
+  //         publish_year: newBook.publishYear || 2024,
+  //         quantity: newBook.quantity,
+  //         price: parseFloat(newBook.price.replace('$', '')) || 0,
+  //       }),
+  //       signal: controller.signal
+  //     });
+      
+  //     clearTimeout(timeoutId);
+
+  //     if (!response.ok) {
+  //       throw new Error(`Server returned ${response.status}`);
+  //     }
+      
+  //     setApiError(null);
+      
+  //   } catch (error) {
+  //     console.error('Error adding new book:', error);
+  //     setApiError("Warning: Backend sync failed. Changes saved locally only.");
+  //   }
+  // };
   const handleSaveNewBook = async () => {
     try {
       // Validate required fields first
-      if (!newBook.title || !newBook.category) {
+      if (!newBook.title || !newBook.isbn || !newBook.authorid || !newBook.publisherid || !newBook.categoryid || !newBook.languageid) {
         alert('Please fill in all required fields');
         return;
       }
-      
-      // Format price properly if needed
-      const formattedPrice = newBook.price.startsWith('$') ? newBook.price : `$${newBook.price}`;
-      const bookToAdd = {...newBook, price: formattedPrice};
-      
+
       // Update local state first (optimistic UI)
-      const updated = [...stock, bookToAdd];
+      const updated = [...stock, newBook];
       setStock(updated);
       localStorage.setItem('stock', JSON.stringify(updated));
       setAddingBook(false);
-      
+
       // Then try API
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const response = await fetch(`${API_BASE_URL}/addbook`, {
         method: 'POST',
         headers: {
@@ -459,26 +593,25 @@ export function AdminOverview() {
         },
         body: JSON.stringify({
           title: newBook.title,
-          isbn: String(newBook.id), // or generate real ISBN if applicable
-          author: newBook.author || 'Unknown',
-          publisher: newBook.publisher || 'Unknown',
-          category: newBook.category,
-          language: newBook.language || 'English',
-          publish_year: newBook.publishYear || 2024,
+          isbn: newBook.isbn,
+          authorid: newBook.authorid,
+          publisherid: newBook.publisherid,
+          categoryid: newBook.categoryid,
+          languageid: newBook.languageid,
+          publish_year: newBook.publish_year || 2024,
           quantity: newBook.quantity,
-          price: parseFloat(newBook.price.replace('$', '')) || 0,
+          price: newBook.price || 0,
         }),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);
       }
-      
+
       setApiError(null);
-      
     } catch (error) {
       console.error('Error adding new book:', error);
       setApiError("Warning: Backend sync failed. Changes saved locally only.");
@@ -626,13 +759,13 @@ const handleConfirmPayment = async (orderId: number) => {
               <tr key={book.id}>
                 <td>{book.id}</td>
                 <td>{editingBookId === book.id ? <input name="title" value={editedBook.title} onChange={handleChangeBook} /> : book.title}</td>
-                <td>{editingBookId === book.id ? <input name="category" value={editedBook.category} onChange={handleChangeBook} /> : book.category}</td>
+                <td>{editingBookId === book.id ? <input name="categoryid" type="number" value={editedBook.categoryid} onChange={handleChangeBook} /> : book.categoryid}</td>
                 <td>{editingBookId === book.id ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
-                <td>{editingBookId === book.id ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
-                <td>{editingBookId === book.id ? <input name="author_id" value={editedBook.author} onChange={handleChangeBook} /> : book.author}</td>
-                <td>{editingBookId === book.id ? <input name="publisher_id" value={editedBook.publisher} onChange={handleChangeBook} /> : book.publisher}</td>
-                <td>{editingBookId === book.id ? <input name="publish_year" value={editedBook.publishYear} onChange={handleChangeBook} /> : book.publishYear}</td>
-                <td>{editingBookId === book.id ? <input name="language_id" value={editedBook.language} onChange={handleChangeBook} /> : book.language}</td>
+                <td>{editingBookId === book.id ? <input name="price" type="number" step="0.01" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
+                <td>{editingBookId === book.id ? <input name="authorid" type="number" value={editedBook.authorid} onChange={handleChangeBook} /> : book.authorid}</td>
+                <td>{editingBookId === book.id ? <input name="publisherid" type="number" value={editedBook.publisherid} onChange={handleChangeBook} /> : book.publisherid}</td>
+                <td>{editingBookId === book.id ? <input name="publish_year" type="number" value={editedBook.publish_year} onChange={handleChangeBook} /> : book.publish_year}</td>
+                <td>{editingBookId === book.id ? <input name="languageid" type="number" value={editedBook.languageid} onChange={handleChangeBook} /> : book.languageid}</td>
                 <td className="admin-actions">
                   {editingBookId === book.id ? (
                     <>
@@ -652,13 +785,13 @@ const handleConfirmPayment = async (orderId: number) => {
               <tr>
                 <td>{newBook.id}</td>
                 <td><input name="title" value={newBook.title} onChange={handleChangeNewBook} /></td>
-                <td><input name="category" value={newBook.category} onChange={handleChangeNewBook} /></td>
+                <td><input name="categoryid" type="number" value={newBook.categoryid} onChange={handleChangeNewBook} /></td>
                 <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
-                <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
-                <td><input name="author_id" value={newBook.author} onChange={handleChangeNewBook} /></td>
-                <td><input name="publisher_id" value={newBook.publisher} onChange={handleChangeNewBook} /></td>
-                <td><input name="publish_year" value={newBook.publishYear} onChange={handleChangeNewBook} /></td>
-                <td><input name="language_id" value={newBook.language} onChange={handleChangeNewBook} /></td>
+                <td><input name="price" type="number" step="0.01" value={newBook.price} onChange={handleChangeNewBook} /></td>
+                <td><input name="authorid" type="number" value={newBook.authorid} onChange={handleChangeNewBook} /></td>
+                <td><input name="publisherid" type="number" value={newBook.publisherid} onChange={handleChangeNewBook} /></td>
+                <td><input name="publish_year" type="number" value={newBook.publish_year} onChange={handleChangeNewBook} /></td>
+                <td><input name="languageid" type="number" value={newBook.languageid} onChange={handleChangeNewBook} /></td>
                 <td className="admin-actions">
                   <button onClick={handleSaveNewBook}>Add</button>
                   <button onClick={() => setAddingBook(false)}>Cancel</button>

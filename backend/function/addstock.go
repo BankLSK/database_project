@@ -21,6 +21,8 @@ type AddBookRequest struct {
 	Price       float64 `json:"price"`
 }
 
+
+
 func AddBookHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("AddBookHandler triggered")
 	setCORSHeaders(w, "POST, OPTIONS")
