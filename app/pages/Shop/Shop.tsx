@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import {useCart} from '../../context/CartContext'
 import './Shop.css';
 
 const products = [
@@ -27,7 +28,8 @@ const paymentMethods = [
 ];
 
 function Shop() {
-  const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
+  //const [cart, setCart] = useState<{ id: number; title: string; price: number; quantity: number }[]>([]);
+  const { cart, addToCart, removeFromCart } = useCart();
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
@@ -38,12 +40,12 @@ function Shop() {
   useEffect(() => {
     const savedCart = localStorage.getItem('savedCart');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      //setCart(JSON.parse(savedCart));
       localStorage.removeItem('savedCart');
     }
   }, []);
 
-  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
+  /*const handleAddToCart = (product: { id: number; title: string; price: number }) => {
     const existingIndex = cart.findIndex(item => item.id === product.id);
     if (existingIndex !== -1) {
       const updatedCart = [...cart];
@@ -52,12 +54,23 @@ function Shop() {
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
-  };
+  };*/
+  const handleAddToCart = (product: { id: number; title: string; price: number }) => {
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      quantity: 1, // le contexte s'occupera d'augmenter si besoin
+    });
+  };  
 
-  const handleRemoveFromCart = (index: number) => {
+  /*const handleRemoveFromCart = (index: number) => {
     const updatedCart = [...cart];
     updatedCart.splice(index, 1);
     setCart(updatedCart);
+  };*/
+  const handleRemoveFromCart = (id: number) => {
+    removeFromCart(id);
   };
 
   const handleConfirmPurchase = async () => {
@@ -103,7 +116,7 @@ function Shop() {
       }
 
       alert('Thank you for your purchase!');
-      setCart([]);
+      //setCart([]);
       setSelectedPayment('');
     } catch (err) {
       console.error('Purchase confirmation error:', err);
@@ -118,6 +131,7 @@ function Shop() {
     router.push('/login');
   };
 
+  //const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
   const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
 
   return (
