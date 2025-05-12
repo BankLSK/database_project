@@ -31,7 +31,8 @@ export function Navbar() {
       <div className="auth-section">
         {isAuthenticated ? (
           <div className="profile-dropdown">
-              <Link href="/profile">Profile</Link>
+              <Link href="/profile" className="profile-button">Profile
+              </Link>
           
             {showDropdown && (
               <div className="dropdown-menu">
