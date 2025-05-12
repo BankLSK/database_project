@@ -11,6 +11,12 @@ const products = [
   { id: 2, title: 'Naruto', price: 8.99, image: '/manga/naruto.jpg' },
   { id: 3, title: 'Attack on Titan', price: 10.99, image: '/manga/aot.jpg' },
   { id: 4, title: 'Demon Slayer', price: 7.99, image: '/manga/demonslayer.jpg' },
+  { id: 5, title: 'Solo Leveling',price:9.99,image:'/manga/sololeveling.jpg'},
+  { id: 6, title: 'Shangri-La Frontier',price:8.49,image:'/manga/shangrila.jpg'},
+  { id: 7, title: 'Dr.Stone', price:9.49,image:'/manga/drstone.jpg'},
+  { id: 8, title: 'Re:Zero',price:8.99 ,image:'/manga/rezero.jpg'},
+  { id: 9, title: 'Fire Force',price:7.99, image: '/manga/fireforce.jpg'},
+  { id:10, title: 'My Hero Academia',price:8.99 ,image:'/manga/mma.jpg'},
 ];
 
 const paymentMethods = [
