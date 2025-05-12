@@ -29,4 +29,29 @@
   .navbar-links a:hover {
     color: #ff5c5c; /* Nice pink-red hover color */
   }
-  
+  .login-button {
+    margin-left: 4px;
+    background-color:black;
+    color:white;
+    border:none;
+    border-radius: 10rem;
+    padding: 10px 25px;
+    cursor: pointer;
+  }
+  .login-button:hover{
+    background-color: #1F1F1F;
+  }
+
+  .profile-button{
+    font-family: Kosugi Maru, sans-serif;
+    color:black;
+    text-decoration: none;
+    background-color: #A1E2CF;
+    border:none;
+    border-radius: 10rem;
+    padding:10px 25px;
+    cursor:pointer;
+  }
+  .profile-button:hover{
+    background-color: #82D9BF;
+  }

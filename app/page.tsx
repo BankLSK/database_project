@@ -2,18 +2,19 @@
 
 import { Home } from './pages/Home/Home';
 import { AdminOverview } from './pages/AdminOverview/AdminOverview';
+import { CartProvider } from './context/CartContext';
+
+// Admin versions (you can create simple placeholders for now)
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function Page() {
-  const { userType } = useAuth();
-
-  if (!userType) {
-    return <div>Loading...</div>; // Optional: can show spinner or splash screen
-  }
+  const { role } = useAuth();
 
   return (
+    <CartProvider>
     <div>
-      {userType === 'admin' ? <AdminOverview /> : <Home />}
+      {role === 'admin' ? <AdminOverview /> : <Home />}
     </div>
+    </CartProvider>
   );
 }

@@ -1,5 +1,3 @@
-// context/CartContext.tsx
-
 'use client';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
@@ -39,6 +37,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromCart = (id: number) => {
+    console.log("Removing",id);
     const updatedCart = cart.filter(c => c.id !== id);
     setCart(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
@@ -56,6 +55,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     </CartContext.Provider>
   );
 };
+
+
 
 export const useCart = () => {
   const context = useContext(CartContext);
