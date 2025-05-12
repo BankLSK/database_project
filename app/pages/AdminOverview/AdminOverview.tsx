@@ -21,7 +21,6 @@ interface BookStock {
   category: string;
   quantity: number;
   price: string;
-  isbn: string;
   author_id: string;
   publisher_id: string;
   publish_year: string;
@@ -48,12 +47,12 @@ export function AdminOverview() {
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<User>({ firstName: '', lastName: '', username: '', email: '', middleName: '', phone: '', location: '' });
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , isbn: '', author_id: '', publisher_id: '', publish_year:'', language_id:''});
+  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author_id: '', publisher_id: '', publish_year:'', language_id:''});
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , isbn: '', author_id: '', publisher_id: '', publish_year:'', language_id:''});
+  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author_id: '', publisher_id: '', publish_year:'', language_id:''});
 
   // Pagination states
   const [orderPage, setOrderPage] = useState(1);
@@ -182,7 +181,7 @@ export function AdminOverview() {
 
   const handleAddStock = () => {
     setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , isbn: '', author_id: '', publisher_id: '', publish_year:'', language_id:'' });
+    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author_id: '', publisher_id: '', publish_year:'', language_id:'' });
   };
 
   const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,7 +256,7 @@ export function AdminOverview() {
                 <td className="admin-actions">
                   {order.orderStatus === 'pending' && (
                     <button 
-                      className="confirm-button"
+                      className="confirm"
                       onClick={() => handleConfirmPayment(order.id)}
                     >
                       Confirm Payment
@@ -286,7 +285,6 @@ export function AdminOverview() {
               <th>Category</th>
               <th>Quantity</th>
               <th>Price</th>
-              <th>ISBN</th>
               <th>Author ID</th>
               <th>Publisher ID</th>
               <th>Publish Year</th>
@@ -302,7 +300,6 @@ export function AdminOverview() {
                 <td>{editingBookId === book.id ? <input name="category" value={editedBook.category} onChange={handleChangeBook} /> : book.category}</td>
                 <td>{editingBookId === book.id ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
                 <td>{editingBookId === book.id ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
-                <td>{editingBookId === book.id ? <input name="ISBN" value={editedBook.isbn} onChange={handleChangeBook} /> : book.isbn}</td>
                 <td>{editingBookId === book.id ? <input name="Author ID" value={editedBook.author_id} onChange={handleChangeBook} /> : book.author_id}</td>
                 <td>{editingBookId === book.id ? <input name="Publisher ID" value={editedBook.publisher_id} onChange={handleChangeBook} /> : book.publisher_id}</td>
                 <td>{editingBookId === book.id ? <input name="Publish Year" value={editedBook.publish_year} onChange={handleChangeBook} /> : book.publish_year}</td>
@@ -329,7 +326,6 @@ export function AdminOverview() {
                 <td><input name="category" value={newBook.category} onChange={handleChangeNewBook} /></td>
                 <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
                 <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
-                <td><input name="ISBN" value={newBook.isbn} onChange={handleChangeNewBook} /></td>
                 <td><input name="Author ID" value={newBook.author_id} onChange={handleChangeNewBook} /></td>
                 <td><input name="Publisher ID" value={newBook.publisher_id} onChange={handleChangeNewBook} /></td>
                 <td><input name="Publish Year" value={newBook.publish_year} onChange={handleChangeNewBook} /></td>
