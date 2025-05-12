@@ -3,177 +3,279 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"strings"
 
 	_ "github.com/lib/pq"
 )
 
 // Book represents a book entity from the database
 type Book struct {
-	BookID       int
-	Title        string
-	ISBN         string
-	AuthorID     int
-	PublisherID  int
-	PublishYear  int
-	CategoryID   int
-	Quantity     int
-	Price        float64
-	LanguageID   int
+	bookid       int
+	title        string
+	isbn         string
+	authorid     int
+	publisherid  int
+	publish_year int
+	categoryid   int
+	quantity     int
+	price        float64
+	languageid   int
 }
 
-// INSERT
-func InsertBook(db *sql.DB, b Book) (Book, error) {
-	query := `
-	INSERT INTO book (title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	RETURNING bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid`
-
-	err := db.QueryRow(query,
-		b.Title, b.ISBN, b.AuthorID, b.PublisherID, b.PublishYear,
-		b.CategoryID, b.Quantity, b.Price, b.LanguageID,
-	).Scan(
-		&b.BookID, &b.Title, &b.ISBN, &b.AuthorID, &b.PublisherID, &b.PublishYear,
-		&b.CategoryID, &b.Quantity, &b.Price, &b.LanguageID,
-	)
-
-	if err != nil {
-		log.Printf("Failed to insert book '%s': %v", b.Title, err)
-		return Book{}, fmt.Errorf("failed to insert book: %w", err)
-	}
-	log.Printf("Inserted book ID=%d | Title=%s | Price=%.2f", b.BookID, b.Title, b.Price)
-	return b, nil
-}
-
-
-// GetAllBooks
+// GetAllBooks fetches all books from the database
 func GetAllBooks(db *sql.DB) ([]Book, error) {
-	rows, err := db.Query(`
-		SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
-		FROM book`)
+	// Query to get all books
+	rows, err := db.Query("SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid FROM book")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query books: %w", err)
+		return nil, fmt.Errorf("failed to query book: %v", err)
 	}
 	defer rows.Close()
 
+	// Prepare slice to hold results
 	var books []Book
+
+	// Process each row
 	for rows.Next() {
-		var b Book
-		err := rows.Scan(&b.BookID, &b.Title, &b.ISBN, &b.AuthorID, &b.PublisherID,
-			&b.PublishYear, &b.CategoryID, &b.Quantity, &b.Price, &b.LanguageID)
+		var book Book
+		err := rows.Scan(
+			&book.bookid,
+			&book.title,
+			&book.isbn,
+			&book.authorid,
+			&book.publisherid,
+			&book.publish_year,
+			&book.categoryid,
+			&book.quantity,
+			&book.price,
+			&book.languageid,
+		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan book: %w", err)
+			return nil, fmt.Errorf("failed to scan book row: %v", err)
 		}
-		books = append(books, b)
+		books = append(books, book)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error after iterating rows: %w", err)
+	// Check for errors after iterating through rows
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during row iteration: %v", err)
 	}
 
-	fmt.Println("\nBOOK CATALOG")
-	fmt.Println(strings.Repeat("=", 130))
-	fmt.Printf("%-5s %-25s %-15s %-10s %-12s %-14s %-12s %-10s %-10s %-10s\n",
-		"ID", "Title", "ISBN", "AuthorID", "PublisherID", "Year", "CategoryID", "Qty", "Price", "LangID")
-	fmt.Println(strings.Repeat("-", 130))
-
-	for _, b := range books {
-		title := b.Title
-		if len(title) > 24 {
-			title = title[:21] + "..."
-		}
-		fmt.Printf("%-5d %-25s %-15s %-10d %-12d %-14d %-12d %-10d %-10.2f %-10d\n",
-			b.BookID, title, b.ISBN, b.AuthorID, b.PublisherID, b.PublishYear,
-			b.CategoryID, b.Quantity, b.Price, b.LanguageID)
-	}
-	fmt.Println(strings.Repeat("=", 130))
-	fmt.Printf("Total books retrieved: %d\n\n", len(books))
-
-	log.Printf("Retrieved %d book(s) from the database", len(books))
 	return books, nil
 }
 
-// GetBookByID
-func GetBookByID(db *sql.DB, id int) (Book, error) {
-	var b Book
-	query := `
-		SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
-		FROM book WHERE bookid = $1`
-
-	err := db.QueryRow(query, id).Scan(
-		&b.BookID, &b.Title, &b.ISBN, &b.AuthorID, &b.PublisherID,
-		&b.PublishYear, &b.CategoryID, &b.Quantity, &b.Price, &b.LanguageID,
-	)
+// GetBookByID fetches a single book by its ID
+func GetBookByID(db *sql.DB, id int) (*Book, error) {
+	var book Book
+	err := db.QueryRow("SELECT bookid, title, author, isbn, published_at, created_at, updated_at, language FROM book WHERE id = $1", id).
+		Scan(&book.bookid, &book.title, &book.isbn, &book.authorid, &book.publisherid, &book.publish_year, &book.categoryid, &book.quantity, &book.price)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("No book found with ID %d", id)
-			return Book{}, fmt.Errorf("book with ID %d not found", id)
+			return nil, fmt.Errorf("book with ID %d not found", id)
 		}
-		log.Printf("Failed to fetch book ID %d: %v", id, err)
-		return Book{}, fmt.Errorf("failed to get book: %w", err)
+		return nil, fmt.Errorf("failed to query book: %v", err)
 	}
 
-	fmt.Println("\nBook Details")
-	fmt.Println(strings.Repeat("=", 60))
-	fmt.Printf("ID          : %d\n", b.BookID)
-	fmt.Printf("Title       : %s\n", b.Title)
-	fmt.Printf("ISBN        : %s\n", b.ISBN)
-	fmt.Printf("Author ID   : %d\n", b.AuthorID)
-	fmt.Printf("Publisher ID: %d\n", b.PublisherID)
-	fmt.Printf("Publish Year: %d\n", b.PublishYear)
-	fmt.Printf("Category ID : %d\n", b.CategoryID)
-	fmt.Printf("Quantity    : %d\n", b.Quantity)
-	fmt.Printf("Price       : %.2f\n", b.Price)
-	fmt.Printf("Language ID : %d\n", b.LanguageID)
-	fmt.Println(strings.Repeat("=", 60))
-
-	log.Printf("Book ID %d fetched successfully", id)
-	return b, nil
+	return &book, nil
 }
 
-// UPDATE
-func UpdateBook(db *sql.DB, b Book) error {
-	query := `
-		UPDATE book
-		SET title = $1, isbn = $2, authorid = $3, publisherid = $4,
-		    publish_year = $5, categoryid = $6, quantity = $7, price = $8, languageid = $9
-		WHERE bookid = $10`
+// DisplayAllBooks fetches and prints all books to the terminal
+func DisplayAllBooks(db *sql.DB) error {
+	books, err := GetAllBooks(db)
+	if err != nil {
+		return err
+	}
 
-	res, err := db.Exec(query,
-		b.Title, b.ISBN, b.AuthorID, b.PublisherID, b.PublishYear,
-		b.CategoryID, b.Quantity, b.Price, b.LanguageID, b.BookID,
+	if len(books) == 0 {
+		fmt.Println("No books found in the database")
+		return nil
+	}
+
+	fmt.Println("\n=== BOOK CATALOG ===")
+	fmt.Println("ID\tTITLE\t\t\tISBN\t\t     AUTHORID\t  PUBLISHERID\t  PUBLISH_YEAR\t  CATEGORYID\t\tQUANTITY\tPRICE\tlanguage")
+	fmt.Println("--------------------------------------------------------")
+
+	for _, book := range books {
+		// Format the title and author for better display
+		title := book.title
+		if len(title) > 20 {
+			title = title[:17] + "..."
+		}
+		bookid := book.bookid
+		author := book.authorid
+		publiserid := book.publisherid
+		publisher_year := book.publish_year
+		categoryid := book.categoryid
+		quantity := book.quantity
+		price := book.price
+		language := book.languageid
+
+		fmt.Printf("%d\t%-20s\t%s\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d\t\t%.2f\t\t%d\n",
+			bookid, title, book.isbn, author, publiserid, publisher_year, categoryid, quantity, price, language)
+	}
+
+	fmt.Println("--------------------------------------------------------")
+	fmt.Printf("Total books: %d\n\n", len(books))
+
+	return nil
+}
+
+// DisplayBookDetails displays detailed information about a single book
+func DisplayBookDetails(db *sql.DB, id int) error {
+	book, err := GetBookByID(db, id)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("\n=== BOOK DETAILS ===")
+	fmt.Printf("ID:           %d\n", book.bookid)
+	fmt.Printf("Title:        %s\n", book.title)
+	fmt.Printf("ISBN:       %s\n", book.isbn)
+	fmt.Printf("AuthorID:         %d\n", book.authorid)
+	fmt.Printf("PublisherID:    %d\n", book.publisherid)
+	fmt.Printf("Publisher_year:   %d\n", book.publish_year)
+	fmt.Printf("CategoryID:   %d\n", book.categoryid)
+	fmt.Printf("Quantity:   %d\n", book.quantity)
+	fmt.Printf("Price:   %f\n", book.price)
+	fmt.Printf("Language:   %d\n", book.languageid)
+	fmt.Println("===================")
+
+	return nil
+}
+
+func getOrCreateAuthorID(db *sql.DB, name string) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT authorid FROM author WHERE authorname = $1", name).Scan(&id)
+	if err == sql.ErrNoRows {
+		// Insert new author
+		err = db.QueryRow("INSERT INTO author (authorname) VALUES ($1) RETURNING authorid", name).Scan(&id)
+	}
+	return id, err
+}
+
+func getOrCreateCategoryID(db *sql.DB, name string) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT categoryid FROM category WHERE categoryname = $1", name).Scan(&id)
+	if err == sql.ErrNoRows {
+		err = db.QueryRow("INSERT INTO category (categoryname) VALUES ($1) RETURNING categoryid", name).Scan(&id)
+	}
+	return id, err
+}
+
+func getOrCreatePublisherID(db *sql.DB, name string) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT publisherid FROM publisher WHERE publishername = $1", name).Scan(&id)
+	if err == sql.ErrNoRows {
+		err = db.QueryRow("INSERT INTO publisher (publishername) VALUES ($1) RETURNING publisherid", name).Scan(&id)
+	}
+	return id, err
+}
+
+func getOrCreateLanguageID(db *sql.DB, lang string) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT languageid FROM language WHERE languagename = $1", lang).Scan(&id)
+	if err == sql.ErrNoRows {
+		err = db.QueryRow("INSERT INTO language (languagename) VALUES ($1) RETURNING languageid", lang).Scan(&id)
+	}
+	return id, err
+}
+
+// AddBook adds a new book to the database
+func AddBookWithNames(
+	db *sql.DB,
+	title, isbn, authorName, publisherName, categoryName, languageName string,
+	publishYear, quantity int,
+	price float64,
+) (Book, error) {
+	var book Book
+
+	// Resolve foreign keys
+	authorID, err := getOrCreateAuthorID(db, authorName)
+	if err != nil {
+		return book, fmt.Errorf("error getting author ID: %v", err)
+	}
+	publisherID, err := getOrCreatePublisherID(db, publisherName)
+	if err != nil {
+		return book, fmt.Errorf("error getting publisher ID: %v", err)
+	}
+	categoryID, err := getOrCreateCategoryID(db, categoryName)
+	if err != nil {
+		return book, fmt.Errorf("error getting category ID: %v", err)
+	}
+	languageID, err := getOrCreateLanguageID(db, languageName)
+	if err != nil {
+		return book, fmt.Errorf("error getting language ID: %v", err)
+	}
+
+	// Check if a book with the same title already exists
+	row := db.QueryRow(`
+		SELECT bookid, quantity FROM book
+		WHERE title = $1 AND authorid = $2 AND publisherid = $3 AND categoryid = $4 AND languageid = $5 AND publish_year = $6
+	`, title, authorID, publisherID, categoryID, languageID, publishYear)
+
+	var existingBookID int
+	var existingQuantity int
+
+	err = row.Scan(&existingBookID, &existingQuantity)
+	if err == nil {
+		// Book exists -> update quantity
+		newQuantity := existingQuantity + quantity
+		_, err := db.Exec(`UPDATE book SET quantity = $1 WHERE bookid = $2`, newQuantity, existingBookID)
+		fmt.Println("Complete update book quantity")
+		if err != nil {
+			fmt.Println("failed to update quantity")
+			return book, fmt.Errorf("failed to update quantity: %v", err)
+		}
+
+		// Return the updated book
+		err = db.QueryRow(`
+			SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
+			FROM book WHERE bookid = $1
+		`, existingBookID).Scan(
+			&book.bookid,
+			&book.title,
+			&book.isbn,
+			&book.authorid,
+			&book.publisherid,
+			&book.publish_year,
+			&book.categoryid,
+			&book.quantity,
+			&book.price,
+			&book.languageid,
+		)
+		if err != nil {
+			fmt.Println("failed to fetch updated book")
+			return book, fmt.Errorf("failed to fetch updated book: %v", err)
+		}
+
+		return book, nil
+	} else if err != sql.ErrNoRows {
+		fmt.Println("failed to check existing book")
+		return book, fmt.Errorf("failed to check existing book: %v", err)
+	}
+
+	// Book doesn't exist -> insert a new one
+	err = db.QueryRow(`
+		INSERT INTO book (title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
+	`, title, isbn, authorID, publisherID, publishYear, categoryID, quantity, price, languageID).Scan(
+		&book.bookid,
+		&book.title,
+		&book.isbn,
+		&book.authorid,
+		&book.publisherid,
+		&book.publish_year,
+		&book.categoryid,
+		&book.quantity,
+		&book.price,
+		&book.languageid,
 	)
+	fmt.Println("Complete inserting book")
+
 	if err != nil {
-		log.Printf("Failed to update book ID %d: %v", b.BookID, err)
-		return fmt.Errorf("failed to update book: %w", err)
+		fmt.Println("error inserting book")
+		return book, fmt.Errorf("error inserting book: %v", err)
 	}
 
-	rows, _ := res.RowsAffected()
-	if rows == 0 {
-		log.Printf("No book found with ID %d to update", b.BookID)
-		return fmt.Errorf("no book with ID %d to update", b.BookID)
-	}
-
-	log.Printf("Book ID %d updated successfully", b.BookID)
-	return nil
-}
-
-// DELETE
-func DeleteBook(db *sql.DB, id int) error {
-	res, err := db.Exec("DELETE FROM book WHERE bookid = $1", id)
-	if err != nil {
-		log.Printf("Failed to delete book ID %d: %v", id, err)
-		return fmt.Errorf("failed to delete book: %w", err)
-	}
-
-	rows, _ := res.RowsAffected()
-	if rows == 0 {
-		log.Printf("No book found with ID %d to delete", id)
-		return fmt.Errorf("no book with ID %d to delete", id)
-	}
-
-	log.Printf("Book ID %d deleted successfully", id)
-	return nil
+	return book, nil
 }

@@ -30,6 +30,7 @@ func main() {
 	http.HandleFunc("/signup", function.SignupHandler)
 	http.HandleFunc("/login", function.LoginHandler) // (optional for future)
 	http.HandleFunc("/confirmpurchase", function.ConfirmPurchaseHandler)
+	http.HandleFunc("/addbook", function.AddBookHandler)
 
 	fmt.Println("Server running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
