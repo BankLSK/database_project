@@ -21,8 +21,8 @@ type User struct {
 }
 
 // ConnectDB establishes connection to the Supabase PostgreSQL database
-func ConnectDB(connStr string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", connStr)
+func ConnectDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}

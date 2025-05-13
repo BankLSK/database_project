@@ -6,7 +6,7 @@ import LogoutButton from '../../components/LogoutButton';
 import './AdminOverview.css';
 // lastest order
 import { createClient } from '@supabase/supabase-js';
-//
+
 //=========================== struct ===========================
 
 interface User {
@@ -20,16 +20,16 @@ interface User {
 }
 
 interface BookStock {
-  id: number;
+  id: number;               // Maps to bookid
   title: string;
-  category: string;
-  quantity: number;
-  price: string;
-  author: string;
-  publisher: string;
-  publishYear: number;
-  language: string;
   isbn: string;
+  authorid: number;
+  publisherid: number;
+  publish_year: number;
+  categoryid: number;
+  quantity: number;
+  price: number;
+  languageid: number;
 }
 
 interface Order {
@@ -44,7 +44,31 @@ interface Order {
   orderStatus: 'pending' | 'success';
 }
 
+interface Book {
+  id: number;
+  title: string;
+  isbn: string;
+  author: string;
+  publisher: string;
+  published_year: number;
+  category: string;
+  quantity: number;
+  price: number;
+  language: string;
+}
 
+interface NewBookInput {
+  id: number;
+  title: string;
+  isbn: string; // This will be auto-generated
+  author: string; // Name instead of ID
+  publisher: string; // Name instead of ID  
+  category: string; // Name instead of ID
+  language: string; // Name instead of ID
+  publish_year: number;
+  quantity: number;
+  price: number;
+}
 
 // lastest order connect supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -59,18 +83,50 @@ export function AdminOverview() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
 
-
   const [editingUserIndex, setEditingUserIndex] = useState<number | null>(null);
-  const [editedUser, setEditedUser] = useState<User>({ firstname: '', lastname: '', username: '', email: '', middlename: '', phone: '', address: '' });
+  const [editedUser, setEditedUser] = useState<User>({ 
+    firstname: '', 
+    middlename: '', 
+    lastname: '', 
+    username: '', 
+    email: '', 
+    phone: '', 
+    address: ''
+  });
+
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
-  const [editedBook, setEditedBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
+  const [editedBook, setEditedBook] = useState<Book>({ 
+    id: 0, 
+    title: '', 
+    isbn: '', 
+    author: '', 
+    publisher: '', 
+    published_year: 0, 
+    category: '', 
+    quantity: 0, 
+    price: 0,
+    language: ''
+  });
 
   const [userFilter, setUserFilter] = useState('');
   const [bookFilter, setBookFilter] = useState('');
   const [addingBook, setAddingBook] = useState(false);
-  const [newBook, setNewBook] = useState<BookStock>({ id: 0, title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: ''});
+  const [newBook, setNewBook] = useState<BookStock>({ 
+    id: 0, 
+    title: '', 
+    isbn: '', 
+    authorid: 0, 
+    publisherid: 0, 
+    categoryid: 0, 
+    languageid: 0, 
+    publish_year: 0, 
+    quantity: 0, 
+    price: 0
+  });
 
-//=================================================================================
+  const [books, setBooks] = useState<Book[]>([]);
+
+  //=================================================================================
   // Pagination states
   const [orderPage, setOrderPage] = useState(1);
   const [bookPage, setBookPage] = useState(1);
@@ -103,7 +159,32 @@ export function AdminOverview() {
     fetchUsers();
   }, []);
 
- 
+  // Fetch books from book_with_details view
+  useEffect(() => {
+    const fetchBooks = async () => {
+      const { data, error } = await supabase.from("book_with_details").select("*");
+      if (error) {
+        console.error("Error fetching books:", error);
+      } else {
+        // Map the returned data to match our Book interface
+        const formattedBooks = data.map(book => ({
+          id: book.bookid || book.id,
+          title: book.title || '',
+          isbn: book.isbn || '',
+          author: book.author || '',
+          publisher: book.publisher || '',
+          published_year: book.publish_year || book.published_year || 0,
+          category: book.category || '',
+          quantity: book.quantity || 0,
+          price: book.price || 0,
+          language: book.language || ''
+        }));
+        setBooks(formattedBooks);
+      }
+    };
+    fetchBooks();
+  }, []);
+
   // lastest order table
   useEffect(() => {
     const fetchData = async () => {
@@ -149,71 +230,6 @@ export function AdminOverview() {
     fetchData();
   }, []);
 
-//
-//   const totalSales = orders.reduce((sum, order) => {
-//     const priceNumber = parseFloat(order.price.replace('$', ''));
-//     return sum + priceNumber;
-//   }, 0).toFixed(2);
- 
-//   useEffect(() => {
-//   // Safe parse pour array
-//   const safeParseArray = <T,>(raw: string | null, fallback: T[]): T[] => {
-//     try {
-//       const parsed = JSON.parse(raw || 'null');
-//       return Array.isArray(parsed) ? parsed : fallback;
-//     } catch {
-//       return fallback;
-//     }
-//   };
-
-//   const storedUsers = safeParseArray<User>(localStorage.getItem('users'), []);
-//   setUsers(storedUsers);
-
-//   const storedStock = safeParseArray<BookStock>(localStorage.getItem('stock'), []);
-//   setStock(storedStock);
-
-//   const defaultOrders: Order[] = [
-//     { 
-//       id: 1, 
-//       orderDate: '2025-05-10', 
-//       username: 'JohnDoe', 
-//       customerId: 101, 
-//       // book: 'One Piece Vol.1', 
-//       price: '$12.99',
-//       totalAmount: '$12.99',
-//       paymentMethod: 'Credit Card',
-//       orderStatus: 'pending'
-//     },
-//     { 
-//       id: 2, 
-//       orderDate: '2025-05-09', 
-//       username: 'JaneSmith', 
-//       customerId: 102, 
-//       // book: 'Naruto Vol.5', 
-//       price: '$10.99',
-//       totalAmount: '$10.99',
-//       paymentMethod: 'PayPal',
-//       orderStatus: 'pending'
-//     },
-//     { 
-//       id: 3, 
-//       orderDate: '2025-05-08', 
-//       username: 'CoolGuy', 
-//       customerId: 103, 
-//       // book: 'Attack on Titan Vol.2', 
-//       price: '$15.99',
-//       totalAmount: '$15.99',
-//       paymentMethod: 'Debit Card',
-//       orderStatus: 'success'
-//     },
-//   ];
-
-//   const storedOrders = safeParseArray<Order>(localStorage.getItem('orders'), defaultOrders);
-//   setOrders(storedOrders);
-
-// }, []);
-
-
   const totalSales = orders.length>0 ? orders.reduce((sum, order) => {
     const priceNumber = parseFloat(order.price.replace('$', ''));
     return sum + priceNumber;
@@ -223,32 +239,18 @@ export function AdminOverview() {
     { title: 'Total Sales', value: `$${totalSales}`, color: '#667eea' },
     { title: 'Total Orders', value: orders.length.toString(), color: '#ff758c' },
     { title: 'Total Users', value: users.length.toString(), color: '#43cea2' },
-    { title: 'In Stock', value: stock.reduce((acc, b) => acc + b.quantity, 0).toString(), color: '#f9ca24' },
+    { title: 'In Stock', value: books.reduce((acc, b) => acc + b.quantity, 0).toString(), color: '#f9ca24' },
   ];
 
   // Filtered Data for pagination
   const filteredUsers = users.filter(user => user.username.toLowerCase().includes(userFilter.toLowerCase()));
-  const filteredBooks = stock.filter(book => book.title.toLowerCase().includes(bookFilter.toLowerCase()));
+  const filteredBooks = books.filter(book => book.title.toLowerCase().includes(bookFilter.toLowerCase()));
 
   const paginatedOrders = orders.slice((orderPage - 1) * itemsPerPage, orderPage * itemsPerPage);
   const paginatedBooks = filteredBooks.slice((bookPage - 1) * itemsPerPage, bookPage * itemsPerPage);
   const paginatedUsers = filteredUsers.slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage);
 
   // --- Handlers: User ---
-  // const handleDeleteUser = (index: number) => {
-  //   const updated = [...users];
-  //   updated.splice(index, 1);
-  //   setUsers(updated);
-  //   localStorage.setItem('users', JSON.stringify(updated));
-  // };
-
-  // const handleSaveUser = (index: number) => {
-  //   const updated = [...users];
-  //   updated[index] = editedUser;
-  //   setUsers(updated);
-  //   localStorage.setItem('users', JSON.stringify(updated));
-  //   setEditingUserIndex(null);
-  // };
   const handleSaveUser = async (index: number) => {
     const userToUpdate = users[index];
     const { error } = await supabase
@@ -295,179 +297,31 @@ export function AdminOverview() {
   };
 
   // --- Handlers: Book ---
-   const handleDeleteBook = async (id: number) => {
-  try {
-    // Show pending state
-    const bookToDelete = stock.find(book => book.id === id);
-    if (!bookToDelete) {
-      console.log(`Book with ID ${id} not found`);
-      return;
-    }
-    
-    console.log(`Deleting book: ${bookToDelete.title} (ID: ${id})`);
-    
-    // Update local state first (optimistic update)
-    const updated = stock.filter(book => book.id !== id);
-    setStock(updated);
-    localStorage.setItem('stock', JSON.stringify(updated));
-    
-    // Then try API with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const url = `${API_BASE_URL}/deletebook/${id}`;
-    console.log("Delete URL:", url);
-    console.log("Attempting to delete book with URL:", url);
-    
-    const response = await fetch(`${API_BASE_URL}/books/delete?id=${id}`, {
-      method: 'DELETE',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status}`);
-    }
-    
-    setApiError(null);
-    console.log(`Book ${id} deleted successfully from API`);
-    
-  } catch (error) {
-    console.error('Error deleting book from API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    setApiError(`Warning: Backend sync failed. Book deleted locally only. (${errorMessage})`);
-  }
-};
-
-  const handleEditBook = (id: number) => {
-    const book = stock.find(b => b.id === id);
-    if (book) {
-      setEditingBookId(id);
-      setEditedBook(book);
-    }
-  };
-
-  const handleSaveBook = async () => {
-  if (editingBookId === null) return;
-
-  try {
-    // Log what we're attempting to save
-    console.log("Attempting to save book with ID:", editingBookId);
-    console.log("Book data:", editedBook);
-    
-    // Optimistic UI update first
-    const updatedStock = stock.map(book => book.id === editingBookId ? editedBook : book);
-    setStock(updatedStock);
-    localStorage.setItem('stock', JSON.stringify(updatedStock));
-    
-    // Format data for API
-    const bookData = {
-      bookid: editingBookId,
-      title: editedBook.title || "",
-      category: editedBook.category || "",
-      quantity: Number(editedBook.quantity) || 0,
-      price: parseFloat(String(editedBook.price || "").replace('$', '')) || 0,
-      author: editedBook.author || "",
-      publisher: editedBook.publisher || "",
-      language: editedBook.language || "",
-      publish_year: Number(editedBook.publishYear) || 2024,
-      isbn: editedBook.isbn || "",
-    };
-    
-    console.log("Formatted data for API:", bookData);
-    
-    // Then try API
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    // Use the correct endpoint
-    const url = `${API_BASE_URL}/books/update`;
-    console.log("Making PUT request to:", url);
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(bookData),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      // Try to get more detailed error info
-      const errorText = await response.text().catch(() => 'No error details available');
-      console.error(`Server error (${response.status}):`, errorText);
-      throw new Error(`Server returned ${response.status}: ${errorText}`);
-    }
-    
-    setApiError(null);
-    console.log("Book saved successfully");
-
-  } catch (error) {
-    console.error('Error updating book:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    setApiError(`Warning: Backend sync failed. Changes saved locally only. (${errorMessage})`);
-  } finally {
-    setEditingBookId(null);
-  }
-};
-
-  const handleChangeBook = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditedBook(prev => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
-  };
-
-  const handleAddStock = () => {
-    setAddingBook(true);
-    setNewBook({ id: Date.now(), title: '', category: '', quantity: 0, price: '' , author: '', publisher: '', language:'', publishYear: 0, isbn: '' });
-  };
-
-  const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBook(prev => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
-  };
-
-  const handleSaveNewBook = async () => {
+  const handleDeleteBook = async (id: number) => {
     try {
-      // Validate required fields first
-      if (!newBook.title || !newBook.category) {
-        alert('Please fill in all required fields');
+      // Show pending state
+      const bookToDelete = books.find(book => book.id === id);
+      if (!bookToDelete) {
+        console.log(`Book with ID ${id} not found`);
         return;
       }
       
-      // Format price properly if needed
-      const formattedPrice = newBook.price.startsWith('$') ? newBook.price : `$${newBook.price}`;
-      const bookToAdd = {...newBook, price: formattedPrice};
+      console.log(`Deleting book: ${bookToDelete.title} (ID: ${id})`);
       
-      // Update local state first (optimistic UI)
-      const updated = [...stock, bookToAdd];
-      setStock(updated);
-      localStorage.setItem('stock', JSON.stringify(updated));
-      setAddingBook(false);
+      // Update local state first (optimistic update)
+      const updated = books.filter(book => book.id !== id);
+      setBooks(updated);
       
-      // Then try API
+      // Then try API with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${API_BASE_URL}/addbook`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newBook.title,
-          isbn: String(newBook.id), // or generate real ISBN if applicable
-          author: newBook.author || 'Unknown',
-          publisher: newBook.publisher || 'Unknown',
-          category: newBook.category,
-          language: newBook.language || 'English',
-          publish_year: newBook.publishYear || 2024,
-          quantity: newBook.quantity,
-          price: parseFloat(newBook.price.replace('$', '')) || 0,
-        }),
+      const url = `${API_BASE_URL}/books/delete?id=${id}`;
+      console.log("Delete URL:", url);
+      console.log("Attempting to delete book with URL:", url);
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
         signal: controller.signal
       });
       
@@ -478,64 +332,414 @@ export function AdminOverview() {
       }
       
       setApiError(null);
+      console.log(`Book ${id} deleted successfully from API`);
       
     } catch (error) {
-      console.error('Error adding new book:', error);
-      setApiError("Warning: Backend sync failed. Changes saved locally only.");
+      console.error('Error deleting book from API:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setApiError(`Warning: Backend sync failed. Book deleted locally only. (${errorMessage})`);
     }
   };
 
- 
-const handleConfirmPayment = async (orderId: number) => {
-  const { error } = await supabase
-    .from('ordersmain')
-    .update({
-      paymentstatus: 'Paid',
-      orderstatus: 'Shipped'
-    })
-    .eq('orderid', orderId);
+  const handleEditBook = (id: number) => {
+    const book = books.find(b => b.id === id);
+    if (book) {
+      setEditingBookId(id);
+      setEditedBook(book);
+    }
+  };
 
-  if (error) {
-    console.error('Failed to update order status:', error.message);
+  const handleSaveBook = async () => {
+  if (editingBookId === null) return;
+  if (!editedBook.author?.trim()) {
+    setApiError("Author is required.");
+    return;
+  }
+  if (!editedBook.publisher?.trim()) {
+    setApiError("Publisher is required.");
+    return;
+  }
+  if (!editedBook.category?.trim()) {
+    setApiError("Category is required.");
+    return;
+  }
+  if (!editedBook.language?.trim()) {
+    setApiError("Language is required.");
     return;
   }
 
-  // Refresh orders from Supabase
-  const { data: refreshedOrders, error: fetchError } = await supabase
-    .from('ordersmain')
-    .select(`
-      orderid,
-      orderdate,
-      customerid,
-      totalamount,
-      paymentmethod,
-      orderstatus,
-      paymentstatus
-    `)
-    .order('orderid', { ascending: false });
+  try {
+    const extractEntityId = (entity: any): number => {
+      const idKey = Object.keys(entity).find(k => k.endsWith('id') && typeof entity[k] === 'number');
+      if (idKey) return entity[idKey];
+      console.error('Entity found but has invalid ID format:', entity);
+      throw new Error('Invalid ID format in existing or new entity');
+    };
 
-  if (fetchError) {
-    console.error('Failed to refresh orders:', fetchError.message);
-    return;
+    const createOrGetEntity = async (tableName: string, nameField: string, nameValue: string): Promise<number> => {
+      if (!nameValue) return 1;
+
+      const { data, error: fetchError } = await supabase
+        .from(tableName)
+        .select("*")
+        .ilike(nameField, nameValue)
+        .limit(1);
+
+      if (fetchError) throw new Error(`Failed to fetch ${tableName}: ${fetchError.message}`);
+
+      if (data && data.length > 0) return extractEntityId(data[0]);
+
+      const insertData = { [nameField]: nameValue };
+      const { data: newData, error: insertError } = await supabase
+        .from(tableName)
+        .insert([insertData])
+        .select();
+
+      if (insertError) throw new Error(`Failed to create ${tableName}: ${insertError.message}`);
+      if (!newData || newData.length === 0) throw new Error(`No data returned from ${tableName} insert`);
+
+      return extractEntityId(newData[0]);
+    };
+
+    // Get IDs for referenced entities
+    const authorId = await createOrGetEntity('author', 'authorname', editedBook.author);
+    const publisherId = await createOrGetEntity('publisher', 'publishername', editedBook.publisher);
+    const categoryId = await createOrGetEntity('category', 'categoryname', editedBook.category);
+    const languageId = await createOrGetEntity('language', 'languagename', editedBook.language);
+
+    // Build the update payload
+    const bookData = {
+      bookid: editingBookId,
+      title: editedBook.title.trim(),
+      isbn: editedBook.isbn.trim(),
+      author: editedBook.author.trim(),
+      publisher: editedBook.publisher.trim(),
+      category: editedBook.category.trim(),
+      language: editedBook.language.trim(),
+      publish_year: Number(editedBook.published_year),
+      quantity: Number(editedBook.quantity),
+      price: Number(editedBook.price),
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const url = `${API_BASE_URL}/books/update`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bookData),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'No error details');
+      throw new Error(`API error (${response.status}): ${errorText}`);
+    }
+
+    // Update local state
+    const updatedBooks = [...books];
+    const bookIndex = updatedBooks.findIndex(book => book.id === editingBookId);
+    if (bookIndex !== -1) {
+      updatedBooks[bookIndex] = { ...editedBook };
+      setBooks(updatedBooks);
+    }
+
+    setApiError(null);
+    setEditingBookId(null);
+
+  } catch (error) {
+    console.error('Error updating book:', error);
+    setApiError(`Failed to save book: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  const parsedOrders: Order[] = refreshedOrders.map((o: any) => ({
-    id: o.orderid,
-    orderDate: o.orderdate,
-    username: 'Unknown',
-    customerId: o.customerid,
-    book: '-',
-    price: `$${o.totalamount.toFixed(2)}`,
-    totalAmount: `$${o.totalamount.toFixed(2)}`,
-    paymentMethod: o.paymentmethod,
-    orderStatus: o.orderstatus === 'Shipped' ? 'success' : 'pending',
-  }));
-
-  setOrders(parsedOrders);
 };
-//
-  
 
+  const handleChangeBook = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedBook(prev => ({ 
+      ...prev, 
+      [name]: name === 'quantity' || name === 'price' || name === 'published_year' 
+        ? Number(value) 
+        : value 
+    }));
+  };
+
+  const handleAddStock = () => {
+  setAddingBook(true);
+  // Generate a random ISBN
+  const generateISBN = () => {
+    // ISBN-13 format: 978 (prefix) + 10 random digits
+    const prefix = '978';
+    const randomPart = Array.from({length: 9}, () => Math.floor(Math.random() * 10)).join('');
+    // Last digit is a check digit - using a simplified version here
+    const checkDigit = Math.floor(Math.random() * 10);
+    return `${prefix}${randomPart}${checkDigit}`;
+  };
+
+  setNewBook({ 
+    id: Date.now(), 
+    title: '', 
+    isbn: generateISBN(), 
+    authorid: 0,  // We'll keep these for backend compatibility
+    publisherid: 0, 
+    publish_year: new Date().getFullYear(), 
+    categoryid: 0, 
+    quantity: 1, 
+    price: 0, 
+    languageid: 0,
+  });
+};
+
+  const handleChangeNewBook = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewBook(prev => ({ 
+      ...prev, 
+      [name]: name === 'quantity' || name === 'price' || name === 'publish_year'
+        ? Number(value) 
+        : value 
+    }));
+  };
+
+  const handleSaveNewBook = async () => {
+  try {
+    // Get form values from the UI
+    const formTitle = (document.querySelector('input[name="title"]') as HTMLInputElement)?.value || '';
+    const formAuthor = (document.querySelector('input[name="author"]') as HTMLInputElement)?.value || '';
+    const formPublisher = (document.querySelector('input[name="publisher"]') as HTMLInputElement)?.value || '';
+    const formCategory = (document.querySelector('input[name="category"]') as HTMLInputElement)?.value || '';
+    const formLanguage = (document.querySelector('input[name="language"]') as HTMLInputElement)?.value || '';
+    const formPublishYear = Number((document.querySelector('input[name="publish_year"]') as HTMLInputElement)?.value || new Date().getFullYear());
+    const formQuantity = Number((document.querySelector('input[name="quantity"]') as HTMLInputElement)?.value || 0);
+    const formPrice = Number((document.querySelector('input[name="price"]') as HTMLInputElement)?.value || 0);
+    const formISBN = newBook.isbn; // Using the auto-generated ISBN
+
+    // Validate required fields first
+    if (!formTitle) {
+      alert('Please enter a book title');
+      return;
+    }
+    
+    if (formPrice <= 0) {
+      alert('Please enter a valid price (greater than 0)');
+      return;
+    }
+    
+    if (formQuantity <= 0) {
+      alert('Please enter a valid quantity (greater than 0)');
+      return;
+    }
+    
+    if (!formAuthor) {
+      alert('Please enter an author name');
+      return;
+    }
+
+    // Show a loading/processing state
+    setApiError("Processing... Please wait");
+
+    // Helper function to create or get related entities
+    const createOrGetEntity = async (tableName: string, nameField: string, nameValue: string): Promise<number> => {
+  if (!nameValue) return 1;
+
+  const extractEntityId = (entity: any): number => {
+    const idKey = Object.keys(entity).find(k => k.endsWith('id') && typeof entity[k] === 'number');
+    if (idKey) return entity[idKey];
+    console.error('Entity found but has invalid ID format:', entity);
+    throw new Error('Invalid ID format in existing or new ' + tableName);
+  };
+
+  try {
+    console.log(`Checking if ${tableName} exists with ${nameField} = "${nameValue}"`);
+
+    const { data, error: fetchError } = await supabase
+      .from(tableName)
+      .select("*")
+      .ilike(nameField, nameValue)
+      .limit(1);
+
+    if (fetchError) {
+      console.error(`Error fetching from ${tableName}:`, fetchError);
+      throw new Error(`Failed to check existing ${tableName}: ${fetchError.message}`);
+    }
+
+    if (data && data.length > 0) {
+      return extractEntityId(data[0]);
+    }
+
+    // Create new entity
+    console.log(`Creating new ${tableName} with ${nameField} = "${nameValue}"`);
+    const insertData = { [nameField]: nameValue };
+
+    const { data: newData, error: insertError } = await supabase
+      .from(tableName)
+      .insert([insertData])
+      .select();
+
+    if (insertError) {
+      console.error(`Error creating new ${tableName}:`, insertError);
+      throw new Error(`Failed to create new ${tableName}: ${insertError.message}`);
+    }
+
+    if (!newData || newData.length === 0) {
+      throw new Error(`No response returned when creating new ${tableName}`);
+    }
+
+    return extractEntityId(newData[0]);
+
+  } catch (err) {
+    console.error(`Error in createOrGetEntity for ${tableName}:`, err);
+    console.warn(`Defaulting to ID 1 for ${tableName} due to error`);
+    return 1;
+  }
+};
+  
+    // Process entities in sequence (for better error handling)
+    let authorId, publisherId, categoryId, languageId;
+    try {
+      console.log("Starting to process related entities...");
+      authorId = await createOrGetEntity('author', 'authorname', formAuthor);
+      console.log(`Got authorId: ${authorId}`);
+      publisherId = await createOrGetEntity('publisher', 'publishername', formPublisher);
+      console.log(`Got publisherId: ${publisherId}`);
+      categoryId = await createOrGetEntity('category', 'categoryname', formCategory);
+      console.log(`Got categoryId: ${categoryId}`);
+      languageId = await createOrGetEntity('language', 'languagename', formLanguage);
+      console.log(`Got languageId: ${languageId}`);
+    } catch (entityError) {
+      console.error("Error processing entities:", entityError);
+      setApiError(`Error processing related entities: ${entityError instanceof Error ? entityError.message : 'Unknown error'}`);
+      return;
+    }
+
+    // Create the book with the retrieved/created IDs
+    const bookData = {
+      title: formTitle,
+      isbn: formISBN,
+      authorid: authorId,
+      publisherid: publisherId,
+      categoryid: categoryId,
+      languageid: languageId,
+      publish_year: formPublishYear,
+      quantity: formQuantity,
+      price: formPrice,
+    };
+
+    // Update local state first (optimistic UI)
+    const updatedNewBook = {
+      ...newBook,
+      title: formTitle,
+      quantity: formQuantity,
+      price: formPrice,
+      publish_year: formPublishYear,
+      authorid: authorId,
+      publisherid: publisherId,
+      categoryid: categoryId,
+      languageid: languageId
+    };
+    
+    const updated = [...stock, updatedNewBook];
+    setStock(updated);
+    
+    // Insert into Supabase
+    const { data: insertedBook, error: insertError } = await supabase
+      .from('book')
+      .insert([bookData])
+      .select();
+      
+    if (insertError) {
+      throw new Error(`Book insert failed: ${insertError.message}`);
+    }
+    
+    // Clear error state and form
+    setApiError(null);
+    setAddingBook(false);
+    
+    // Refresh books list
+    const { data, error } = await supabase.from("book_with_details").select("*");
+    if (error) {
+      console.error("Error fetching books:", error);
+    } else {
+      // Map the returned data to match our Book interface
+      const formattedBooks = data.map(book => ({
+        id: book.bookid || book.id,
+        title: book.title || '',
+        isbn: book.isbn || '',
+        author: book.author || '',
+        publisher: book.publisher || '',
+        published_year: book.publish_year || book.published_year || 0,
+        category: book.category || '',
+        quantity: book.quantity || 0,
+        price: book.price || 0,
+        language: book.language || ''
+      }));
+      setBooks(formattedBooks);
+    }
+    
+    // Show success message
+    alert('Book added successfully!');
+    
+  } catch (error) {
+    console.error('Error adding new book:', error);
+    setApiError(`Failed to add book: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+  const handleConfirmPayment = async (orderId: number) => {
+    const { error } = await supabase
+      .from('ordersmain')
+      .update({
+        paymentstatus: 'Paid',
+        orderstatus: 'Shipped'
+      })
+      .eq('orderid', orderId);
+
+    if (error) {
+      console.error('Failed to update order status:', error.message);
+      return;
+    }
+
+    // Refresh orders from Supabase
+    const { data: refreshedOrders, error: fetchError } = await supabase
+      .from('ordersmain')
+      .select(`
+        orderid,
+        orderdate,
+        customerid,
+        totalamount,
+        paymentmethod,
+        orderstatus,
+        paymentstatus
+      `)
+      .order('orderid', { ascending: false });
+
+    if (fetchError) {
+      console.error('Failed to refresh orders:', fetchError.message);
+      return;
+    }
+
+    const parsedOrders: Order[] = refreshedOrders.filter((o: any) => {
+      return o.paymentstatus !== 'Paid' || o.orderstatus !== 'Shipped';
+    }).map((o: any) => ({
+      id: o.orderid,
+      orderDate: o.orderdate,
+      username: 'Unknown',
+      customerId: o.customerid,
+      price: `$${o.totalamount.toFixed(2)}`,
+      totalAmount: `$${o.totalamount.toFixed(2)}`,
+      paymentMethod: o.paymentmethod,
+      orderStatus: o.orderstatus === 'Shipped' ? 'success' : 'pending',
+    }));
+
+    setOrders(parsedOrders);
+  };
+
+
+  
   // --- Render ---
   return (
     <div className="admin-container">
@@ -559,7 +763,6 @@ const handleConfirmPayment = async (orderId: number) => {
               <th>Order ID</th>
               <th>Order Date</th>
               <th>Customer ID</th>
-              {/* <th>Book</th> */}
               <th>Price</th>
               <th>Total Amount</th>
               <th>Payment Method</th>
@@ -573,7 +776,6 @@ const handleConfirmPayment = async (orderId: number) => {
                 <td>{order.id}</td>
                 <td>{order.orderDate}</td>
                 <td>{order.customerId}</td>
-                {/* <td>{order.book}</td> */}
                 <td>{order.price}</td>
                 <td>{order.totalAmount}</td>
                 <td>{order.paymentMethod}</td>
@@ -606,18 +808,20 @@ const handleConfirmPayment = async (orderId: number) => {
         <div className="admin-actions add-but">
           <button onClick={handleAddStock}>Add Stock</button>
         </div>
+        {apiError && <div className="error-message">{apiError}</div>}
         <table className="admin-table">
           <thead>
             <tr>
               <th>#</th>
               <th>Title</th>
+              <th>ISBN</th>
               <th>Category</th>
               <th>Quantity</th>
               <th>Price</th>
-              <th>Author ID</th>
-              <th>Publisher ID</th>
+              <th>Author</th>
+              <th>Publisher</th>
               <th>Publish Year</th>
-              <th>Language ID</th>
+              <th>Language</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -626,13 +830,14 @@ const handleConfirmPayment = async (orderId: number) => {
               <tr key={book.id}>
                 <td>{book.id}</td>
                 <td>{editingBookId === book.id ? <input name="title" value={editedBook.title} onChange={handleChangeBook} /> : book.title}</td>
+                <td>{editingBookId === book.id ? <input name="isbn" value={editedBook.isbn} onChange={handleChangeBook} /> : book.isbn}</td>
                 <td>{editingBookId === book.id ? <input name="category" value={editedBook.category} onChange={handleChangeBook} /> : book.category}</td>
                 <td>{editingBookId === book.id ? <input name="quantity" type="number" value={editedBook.quantity} onChange={handleChangeBook} /> : book.quantity}</td>
-                <td>{editingBookId === book.id ? <input name="price" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
-                <td>{editingBookId === book.id ? <input name="author_id" value={editedBook.author} onChange={handleChangeBook} /> : book.author}</td>
-                <td>{editingBookId === book.id ? <input name="publisher_id" value={editedBook.publisher} onChange={handleChangeBook} /> : book.publisher}</td>
-                <td>{editingBookId === book.id ? <input name="publish_year" value={editedBook.publishYear} onChange={handleChangeBook} /> : book.publishYear}</td>
-                <td>{editingBookId === book.id ? <input name="language_id" value={editedBook.language} onChange={handleChangeBook} /> : book.language}</td>
+                <td>{editingBookId === book.id ? <input name="price" type="number" step="0.01" value={editedBook.price} onChange={handleChangeBook} /> : book.price}</td>
+                <td>{editingBookId === book.id ? <input name="author" value={editedBook.author} onChange={handleChangeBook} /> : book.author}</td>
+                <td>{editingBookId === book.id ? <input name="publisher" value={editedBook.publisher} onChange={handleChangeBook} /> : book.publisher}</td>
+                <td>{editingBookId === book.id ? <input name="published_year" type="number" value={editedBook.published_year} onChange={handleChangeBook} /> : book.published_year}</td>
+                <td>{editingBookId === book.id ? <input name="language" value={editedBook.language} onChange={handleChangeBook} /> : book.language}</td>
                 <td className="admin-actions">
                   {editingBookId === book.id ? (
                     <>
@@ -649,16 +854,17 @@ const handleConfirmPayment = async (orderId: number) => {
               </tr>
             ))}
             {addingBook && (
-              <tr>
+              <tr key="new">
                 <td>{newBook.id}</td>
-                <td><input name="title" value={newBook.title} onChange={handleChangeNewBook} /></td>
-                <td><input name="category" value={newBook.category} onChange={handleChangeNewBook} /></td>
-                <td><input name="quantity" type="number" value={newBook.quantity} onChange={handleChangeNewBook} /></td>
-                <td><input name="price" value={newBook.price} onChange={handleChangeNewBook} /></td>
-                <td><input name="author_id" value={newBook.author} onChange={handleChangeNewBook} /></td>
-                <td><input name="publisher_id" value={newBook.publisher} onChange={handleChangeNewBook} /></td>
-                <td><input name="publish_year" value={newBook.publishYear} onChange={handleChangeNewBook} /></td>
-                <td><input name="language_id" value={newBook.language} onChange={handleChangeNewBook} /></td>
+                <td><input name="title" placeholder="Book Title" required /></td>
+                <td><input name="isbn" value={newBook.isbn} disabled style={{backgroundColor: '#f0f0f0'}} /></td>
+                <td><input name="category" placeholder="Category" /></td>
+                <td><input name="quantity" type="number" min="1" defaultValue="1" /></td>
+                <td><input name="price" type="number" step="0.01" min="0.01" placeholder="0.00" /></td>
+                <td><input name="author" placeholder="Author Name" /></td>
+                <td><input name="publisher" placeholder="Publisher Name" /></td>
+                <td><input name="publish_year" type="number" min="1900" max="2100" defaultValue={new Date().getFullYear()} /></td>
+                <td><input name="language" placeholder="Language" defaultValue="English" /></td>
                 <td className="admin-actions">
                   <button onClick={handleSaveNewBook}>Add</button>
                   <button onClick={() => setAddingBook(false)}>Cancel</button>

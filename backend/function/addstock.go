@@ -57,34 +57,34 @@ func AddBookHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(book)
 }
 
-func GetBooksByTitleHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("GetBooksByTitleHandler triggered")
-	setCORSHeaders(w, "GET, OPTIONS")
+// func GetBooksByTitleHandler(w http.ResponseWriter, r *http.Request) {
+// 	fmt.Println("GetBooksByTitleHandler triggered")
+// 	setCORSHeaders(w, "GET, OPTIONS")
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
+// 	if r.Method == http.MethodOptions {
+// 		w.WriteHeader(http.StatusOK)
+// 		return
+// 	}
 
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
-		return
-	}
+// 	if r.Method != http.MethodGet {
+// 		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+// 		return
+// 	}
 
-	title := r.URL.Query().Get("title")
-	if title == "" {
-		http.Error(w, `{"error":"Missing title parameter"}`, http.StatusBadRequest)
-		return
-	}
+// 	title := r.URL.Query().Get("title")
+// 	if title == "" {
+// 		http.Error(w, `{"error":"Missing title parameter"}`, http.StatusBadRequest)
+// 		return
+// 	}
 
-	books, err := backend_db.GetBooksByTitle(backend_db.DB, title)
-	if err != nil {
-		http.Error(w, `{"error":"Failed to fetch books"}`, http.StatusInternalServerError)
-		return
-	}
+// 	books, err := backend_db.GetBooksByTitle(backend_db.DB, title)
+// 	if err != nil {
+// 		http.Error(w, `{"error":"Failed to fetch books"}`, http.StatusInternalServerError)
+// 		return
+// 	}
 
-	json.NewEncoder(w).Encode(books)
-}
+// 	json.NewEncoder(w).Encode(books)
+// }
 
 type UpdateBookRequest struct {
 	BookID      int     `json:"bookid"`
@@ -125,18 +125,37 @@ func UpdateBookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("Attempting to update book ID %d\n", book.BookID)
+
 	updatedBook, err := backend_db.UpdateBook(
 		backend_db.DB,
-		book.BookID, book.Title, book.ISBN, book.AuthorName,
-		book.Publisher, book.Category, book.Language,
-		book.PublishYear, book.Quantity, book.Price,
+		book.BookID,
+		book.Title,
+		book.ISBN,
+		book.AuthorName,
+		book.Publisher,
+		book.Category,
+		book.Language,
+		book.PublishYear,
+		book.Quantity,
+		book.Price,
 	)
+
 	if err != nil {
+		// Handle no book updated (custom error string check from db logic)
+		if err.Error() == fmt.Sprintf("no book updated (possibly wrong bookid: %d)", book.BookID) {
+			fmt.Println("No book found to update")
+			http.Error(w, `{"error":"Book not found"}`, http.StatusNotFound)
+			return
+		}
+
+		// Any other database error
 		fmt.Println("Error updating book in database:", err)
 		http.Error(w, `{"error":"Failed to update book"}`, http.StatusInternalServerError)
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updatedBook)
 }
 
