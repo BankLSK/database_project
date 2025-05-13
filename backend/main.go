@@ -36,9 +36,11 @@ func main() {
 	http.HandleFunc("/getbooks", func(w http.ResponseWriter, r *http.Request) {
 		function.HandleGetBooksByCategory(database, w, r)
 	})
-	http.HandleFunc("/books", function.GetBooksByTitleHandler)   // GET ?title=...
+	// http.HandleFunc("/books", function.GetBooksByTitleHandler)   // GET ?title=...
 	http.HandleFunc("/books/update", function.UpdateBookHandler) // PUT
 	http.HandleFunc("/books/delete", function.DeleteBookHandler) // DELETE ?id=...
+
+	http.HandleFunc("/books/details", function.GetBooksWithDetailsHandler(database))
 
 	// Enable CORS
 	corsHandler := handlers.CORS(

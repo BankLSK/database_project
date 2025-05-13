@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "github.com/lib/pq"
 )
@@ -22,40 +23,67 @@ type Book struct {
 }
 
 func getOrCreateAuthorID(db *sql.DB, name string) (int, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0, fmt.Errorf("author name cannot be empty")
+	}
 	var id int
 	err := db.QueryRow("SELECT authorid FROM author WHERE authorname = $1", name).Scan(&id)
 	if err == sql.ErrNoRows {
-		// Insert new author
 		err = db.QueryRow("INSERT INTO author (authorname) VALUES ($1) RETURNING authorid", name).Scan(&id)
 	}
-	return id, err
+	if err != nil {
+		return 0, fmt.Errorf("author error: %v", err)
+	}
+	return id, nil
 }
 
 func getOrCreateCategoryID(db *sql.DB, name string) (int, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0, fmt.Errorf("category name cannot be empty")
+	}
 	var id int
 	err := db.QueryRow("SELECT categoryid FROM category WHERE categoryname = $1", name).Scan(&id)
 	if err == sql.ErrNoRows {
 		err = db.QueryRow("INSERT INTO category (categoryname) VALUES ($1) RETURNING categoryid", name).Scan(&id)
 	}
-	return id, err
+	if err != nil {
+		return 0, fmt.Errorf("category error: %v", err)
+	}
+	return id, nil
 }
 
 func getOrCreatePublisherID(db *sql.DB, name string) (int, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0, fmt.Errorf("publisher name cannot be empty")
+	}
 	var id int
 	err := db.QueryRow("SELECT publisherid FROM publisher WHERE publishername = $1", name).Scan(&id)
 	if err == sql.ErrNoRows {
 		err = db.QueryRow("INSERT INTO publisher (publishername) VALUES ($1) RETURNING publisherid", name).Scan(&id)
 	}
-	return id, err
+	if err != nil {
+		return 0, fmt.Errorf("publisher error: %v", err)
+	}
+	return id, nil
 }
 
 func getOrCreateLanguageID(db *sql.DB, lang string) (int, error) {
+	lang = strings.TrimSpace(lang)
+	if lang == "" {
+		return 0, fmt.Errorf("language name cannot be empty")
+	}
 	var id int
 	err := db.QueryRow("SELECT languageid FROM language WHERE languagename = $1", lang).Scan(&id)
 	if err == sql.ErrNoRows {
 		err = db.QueryRow("INSERT INTO language (languagename) VALUES ($1) RETURNING languageid", lang).Scan(&id)
 	}
-	return id, err
+	if err != nil {
+		return 0, fmt.Errorf("language error: %v", err)
+	}
+	return id, nil
 }
 
 // AddBook adds a new book to the database
@@ -189,18 +217,26 @@ func UpdateBook(
 	}
 
 	// Update book details
-	_, err = db.Exec(`
-		UPDATE book
-		SET title = $1, isbn = $2, authorid = $3, publisherid = $4, publish_year = $5,
-			categoryid = $6, quantity = $7, price = $8, languageid = $9
-		WHERE bookid = $10
-	`, title, isbn, authorID, publisherID, publishYear, categoryID, quantity, price, languageID, bookID)
+	res, err := db.Exec(`
+	UPDATE book
+	SET title = $1, isbn = $2, authorid = $3, publisherid = $4, publish_year = $5,
+		categoryid = $6, quantity = $7, price = $8, languageid = $9
+	WHERE bookid = $10
+`, title, isbn, authorID, publisherID, publishYear, categoryID, quantity, price, languageID, bookID)
 
 	if err != nil {
 		return book, fmt.Errorf("failed to update book: %v", err)
 	}
 
-	// Return the updated book information
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return book, fmt.Errorf("failed to get affected rows: %v", err)
+	}
+	if rowsAffected == 0 {
+		return book, fmt.Errorf("no book updated (possibly wrong bookid: %d)", bookID)
+	}
+
+	// Now safe to fetch updated record
 	err = db.QueryRow(`
 		SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
 		FROM book WHERE bookid = $1
@@ -224,31 +260,31 @@ func UpdateBook(
 	return book, nil
 }
 
-func GetBooksByTitle(db *sql.DB, title string) ([]Book, error) {
-	rows, err := db.Query(`
-		SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
-		FROM book WHERE title ILIKE '%' || $1 || '%'
-	`, title)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// func GetBooksByTitle(db *sql.DB, title string) ([]Book, error) {
+// 	rows, err := db.Query(`
+// 		SELECT bookid, title, isbn, authorid, publisherid, publish_year, categoryid, quantity, price, languageid
+// 		FROM book WHERE title ILIKE '%' || $1 || '%'
+// 	`, title)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	var books []Book
-	for rows.Next() {
-		var book Book
-		err := rows.Scan(
-			&book.bookid, &book.title, &book.isbn, &book.authorid,
-			&book.publisherid, &book.publish_year, &book.categoryid,
-			&book.quantity, &book.price, &book.languageid,
-		)
-		if err != nil {
-			return nil, err
-		}
-		books = append(books, book)
-	}
-	return books, nil
-}
+// 	var books []Book
+// 	for rows.Next() {
+// 		var book Book
+// 		err := rows.Scan(
+// 			&book.bookid, &book.title, &book.isbn, &book.authorid,
+// 			&book.publisherid, &book.publish_year, &book.categoryid,
+// 			&book.quantity, &book.price, &book.languageid,
+// 		)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		books = append(books, book)
+// 	}
+// 	return books, nil
+// }
 
 func DeleteBook(db *sql.DB, bookID int) error {
 	_, err := db.Exec("DELETE FROM book WHERE bookid = $1", bookID)
