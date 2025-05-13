@@ -7,8 +7,8 @@ import { useAuth } from '@/app/context/AuthContext';
 export default function Page() {
   const { userType } = useAuth();
 
-  if (!userType) {
-    return <div>Loading...</div>; // Optional: can show spinner or splash screen
+  if (userType === undefined) {
+    return <div><Home /></div>; // Optional: can show spinner or splash screen
   }
 
   return (
